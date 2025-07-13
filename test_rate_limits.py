@@ -7,7 +7,7 @@ import requests
 import json
 import time
 
-BACKEND_URL = "https://6dffe706-205b-4b36-a226-bbf22fc975a2.preview.emergentagent.com/api"
+BACKEND_URL = "https://fd54110d-2279-476a-b823-5707af72de5c.preview.emergentagent.com/api"
 
 def test_rate_limit_handling():
     """Test rate limit error handling"""
