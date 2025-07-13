@@ -56,18 +56,21 @@ class BackendTester:
         df = pd.DataFrame(data)
         return df.to_csv(index=False)
     
-    def test_csv_upload_api(self) -> bool:
-        """Test CSV file upload API endpoint"""
-        print("Testing CSV File Upload API...")
+    def test_csv_upload_api_fast(self) -> bool:
+        """Test CSV file upload API endpoint with focus on speed after disabling enhanced profiling"""
+        print("Testing Fast CSV File Upload API (Enhanced Profiling Disabled)...")
         
         try:
             # Create sample CSV data
             csv_data = self.create_sample_csv_data()
             
-            # Test valid CSV upload with retry logic
+            # Test valid CSV upload with timing
             files = {
                 'file': ('medical_data.csv', csv_data, 'text/csv')
             }
+            
+            print("  Measuring upload speed...")
+            start_time = time.time()
             
             max_retries = 3
             for attempt in range(max_retries):
@@ -80,6 +83,15 @@ class BackendTester:
                         return False
                     print(f"Retry {attempt + 1}/{max_retries} due to: {str(e)}")
                     time.sleep(2)
+            
+            upload_time = time.time() - start_time
+            print(f"  Upload completed in {upload_time:.2f} seconds")
+            
+            # Check if upload is fast (should be under 10 seconds as per requirements)
+            if upload_time > 10:
+                print(f"⚠️ Upload time ({upload_time:.2f}s) exceeds 10 second target")
+            else:
+                print(f"✅ Fast upload achieved: {upload_time:.2f}s (under 10s target)")
             
             if response.status_code == 200:
                 data = response.json()
@@ -94,13 +106,37 @@ class BackendTester:
                     if all(field in preview for field in preview_fields):
                         print("✅ CSV upload successful with proper preview generation")
                         
+                        # Verify basic data analysis functionality still works
+                        shape = preview.get('shape', [0, 0])
+                        columns = preview.get('columns', [])
+                        dtypes = preview.get('dtypes', {})
+                        
+                        if shape[0] == 50 and shape[1] == 8:  # Expected dimensions
+                            print("✅ Data preview shows correct dimensions (50×8)")
+                        else:
+                            print(f"⚠️ Unexpected data dimensions: {shape}")
+                        
+                        if len(columns) == 8:
+                            print("✅ All columns detected in preview")
+                        else:
+                            print(f"⚠️ Column count mismatch: expected 8, got {len(columns)}")
+                        
+                        # Check for medical variables detection
+                        medical_vars = ['patient_id', 'age', 'gender', 'blood_pressure_systolic', 'cholesterol', 'bmi', 'diabetes', 'heart_disease']
+                        detected_vars = [col for col in columns if col in medical_vars]
+                        
+                        if len(detected_vars) >= 6:
+                            print(f"✅ Medical variables detected: {len(detected_vars)}/8")
+                        else:
+                            print(f"⚠️ Limited medical variables detected: {detected_vars}")
+                        
                         # Test invalid file upload (non-CSV)
                         invalid_files = {
                             'file': ('test.txt', 'invalid content', 'text/plain')
                         }
                         invalid_response = requests.post(f"{BACKEND_URL}/sessions", files=invalid_files, timeout=30)
                         
-                        if invalid_response.status_code in [400, 500]:  # Backend returns 500 but with 400 error message
+                        if invalid_response.status_code in [400, 500]:
                             error_detail = invalid_response.json().get('detail', '')
                             if 'Only CSV files are supported' in error_detail:
                                 print("✅ CSV validation working - rejects non-CSV files")
