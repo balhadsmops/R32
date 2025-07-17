@@ -550,27 +550,36 @@ class DataChunker:
     def _calculate_comprehensive_stats(self, df: pd.DataFrame) -> Dict[str, Any]:
         """Calculate comprehensive statistical context"""
         stats = {
-            'dataset_shape': df.shape,
+            'dataset_shape': [int(df.shape[0]), int(df.shape[1])],
             'data_types': df.dtypes.astype(str).to_dict(),
-            'missing_values': df.isnull().sum().to_dict(),
-            'memory_usage': df.memory_usage(deep=True).to_dict()
+            'missing_values': {k: int(v) for k, v in df.isnull().sum().to_dict().items()},
+            'memory_usage': {k: int(v) for k, v in df.memory_usage(deep=True).to_dict().items()}
         }
         
         # Numeric statistics
         numeric_df = df.select_dtypes(include=[np.number])
         if not numeric_df.empty:
-            stats['descriptive_stats'] = numeric_df.describe().to_dict()
+            describe_dict = numeric_df.describe().to_dict()
+            stats['descriptive_stats'] = {
+                k: {k2: float(v2) for k2, v2 in v.items()} 
+                for k, v in describe_dict.items()
+            }
             if len(numeric_df.columns) > 1:
-                stats['correlation_matrix'] = numeric_df.corr().to_dict()
+                corr_dict = numeric_df.corr().to_dict()
+                stats['correlation_matrix'] = {
+                    k: {k2: float(v2) for k2, v2 in v.items()} 
+                    for k, v in corr_dict.items()
+                }
         
         # Categorical statistics
         categorical_df = df.select_dtypes(include=['object'])
         if not categorical_df.empty:
             stats['categorical_stats'] = {}
             for col in categorical_df.columns:
+                value_counts = categorical_df[col].value_counts().to_dict()
                 stats['categorical_stats'][col] = {
-                    'unique_count': categorical_df[col].nunique(),
-                    'value_counts': categorical_df[col].value_counts().to_dict()
+                    'unique_count': int(categorical_df[col].nunique()),
+                    'value_counts': {k: int(v) for k, v in value_counts.items()}
                 }
         
         return stats
