@@ -32,6 +32,7 @@ from statsmodels.stats.contingency_tables import mcnemar
 from lifelines import KaplanMeierFitter, CoxPHFitter
 from lifelines.statistics import logrank_test
 import warnings
+import time
 warnings.filterwarnings('ignore')
 
 # Import comprehensive data analysis services
