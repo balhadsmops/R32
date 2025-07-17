@@ -1274,8 +1274,10 @@ async def get_messages(session_id: str):
 
 @api_router.post("/sessions/{session_id}/chat")
 async def chat_with_llm(session_id: str, message: str = Form(...), gemini_api_key: str = Form(...)):
-    """Chat with LLM about the data"""
+    """Enhanced chat with LLM using RAG system for intelligent context retrieval"""
     try:
+        start_time = time.time()
+        
         # Get session
         session = await db.chat_sessions.find_one({"id": session_id})
         if not session:
@@ -1289,102 +1291,189 @@ async def chat_with_llm(session_id: str, message: str = Form(...), gemini_api_ke
         )
         await db.chat_messages.insert_one(user_message.dict())
         
-        # Prepare enhanced context for LLM
-        csv_preview = session.get('csv_preview', {})
-        
-        # Enhanced data analysis context
-        columns = csv_preview.get('columns', [])
-        dtypes = csv_preview.get('dtypes', {})
-        null_counts = csv_preview.get('null_counts', {})
-        describe_stats = csv_preview.get('describe', {})
-        
-        # Analyze data types and potential study design
-        numeric_cols = [col for col, dtype in dtypes.items() if 'int' in str(dtype) or 'float' in str(dtype)]
-        categorical_cols = [col for col, dtype in dtypes.items() if 'object' in str(dtype)]
-        
-        # Identify potential study variables
-        potential_outcomes = []
-        potential_exposures = []
-        potential_time_vars = []
-        
-        for col in columns:
-            col_lower = col.lower()
-            # Identify potential outcome variables
-            if any(term in col_lower for term in ['outcome', 'death', 'survival', 'event', 'response', 'improvement', 'cure']):
-                potential_outcomes.append(col)
-            # Identify potential exposure/treatment variables
-            elif any(term in col_lower for term in ['treatment', 'group', 'arm', 'intervention', 'therapy', 'drug', 'placebo', 'vaccine']):
-                potential_exposures.append(col)
-            # Identify potential time variables
-            elif any(term in col_lower for term in ['time', 'day', 'week', 'month', 'year', 'duration', 'follow']):
-                potential_time_vars.append(col)
-        
-        context = f"""
-        You are an Expert AI Data Scientist and Biostatistician. You have been provided with a medical/research dataset: {session['file_name']}
-        
-        DATASET OVERVIEW:
-        - Shape: {csv_preview.get('shape', 'Unknown')} (rows × columns)
-        - Total Variables: {len(columns)}
-        - Numeric Variables: {len(numeric_cols)} - {numeric_cols}
-        - Categorical Variables: {len(categorical_cols)} - {categorical_cols}
-        
-        POTENTIAL STUDY VARIABLES IDENTIFIED:
-        - Potential Outcomes: {potential_outcomes if potential_outcomes else 'None automatically identified'}
-        - Potential Exposures/Treatments: {potential_exposures if potential_exposures else 'None automatically identified'}
-        - Potential Time Variables: {potential_time_vars if potential_time_vars else 'None automatically identified'}
-        
-        DATA QUALITY ASSESSMENT:
-        - Missing Values: {null_counts}
-        - Sample Data Preview: {csv_preview.get('head', [])[:3]}
-        
-        STATISTICAL SUMMARY:
-        {describe_stats}
-        
-        YOUR ROLE AS AN AI DATA SCIENTIST:
-        1. **Data Understanding**: Automatically analyze the dataset structure and identify the type of study (observational, clinical trial, survey, etc.)
-        2. **Intelligent Analysis**: Suggest appropriate statistical methods based on data types and research questions
-        3. **Professional Communication**: Explain analyses in clear, professional language like a senior biostatistician
-        4. **Comprehensive Testing**: Offer a full range of statistical tests including:
-           - Descriptive statistics and data exploration
-           - Hypothesis testing (t-tests, chi-square, ANOVA, etc.)
-           - Regression analysis (linear, logistic, Cox proportional hazards)
-           - Survival analysis (Kaplan-Meier, log-rank tests)
-           - Advanced visualizations (forest plots, survival curves, etc.)
-        5. **Result Interpretation**: Provide clinical/practical interpretation of statistical results
-        6. **Visualization Recommendations**: Suggest appropriate plots and charts for different types of analyses
-        
-        IMPORTANT GUIDELINES:
-        - Always examine the data structure first and identify what type of study this appears to be
-        - When suggesting analyses, be specific about which variables to use and why
-        - Always consider assumptions of statistical tests and suggest appropriate checks
-        - Provide both statistical significance and clinical significance interpretations
-        - Suggest appropriate visualizations for each type of analysis
-        - Generate Python code when requested, using the full range of available libraries
-        
-        AVAILABLE LIBRARIES FOR ANALYSIS:
-        pandas, numpy, scipy, statsmodels, matplotlib, seaborn, plotly, lifelines, sklearn, and more
-        
-        Please respond as a professional biostatistician would - with expertise, precision, and clear communication.
-        """
+        # Enhanced RAG-powered context retrieval
+        try:
+            # Query the RAG system for relevant context
+            context_chunks, query_intent = rag_service.query_collection(
+                session_id=session_id,
+                query=message,
+                n_results=5
+            )
+            
+            # Get query-specific template
+            template = response_generator.response_templates.get(
+                query_intent.type, 
+                response_generator.response_templates[QueryType.DESCRIPTIVE]
+            )(query_intent)
+            
+            # Build enhanced context with RAG results
+            rag_context = "\n\n".join([
+                f"**Relevant Data Context {i+1}:**\n{chunk}" 
+                for i, chunk in enumerate(context_chunks)
+            ])
+            
+            # Enhanced system prompt with RAG context
+            system_prompt = f"""
+            You are an Expert AI Data Scientist and Biostatistician specializing in {query_intent.type.value} analysis.
+            
+            {template['system_prompt']}
+            
+            ENHANCED DATA CONTEXT FROM RAG SYSTEM:
+            {rag_context}
+            
+            QUERY ANALYSIS:
+            - Query Type: {query_intent.type.value}
+            - Confidence: {query_intent.confidence:.2f}
+            - Variables Mentioned: {query_intent.variables}
+            - Statistical Tests: {query_intent.statistical_tests}
+            - Visualization Type: {query_intent.visualization_type}
+            - Filters: {query_intent.filters}
+            
+            RESPONSE STRUCTURE REQUIRED:
+            You MUST structure your response EXACTLY as follows:
+            
+            1. **Answer:** (Provide a direct, concise answer to the question)
+            
+            2. **Explanation:** (Provide detailed explanation of the analysis, methodology, and interpretation)
+            
+            3. **Code (if applicable):**
+            ```python
+            # Python code for analysis/visualization
+            # Use the provided context data
+            # Include comprehensive comments
+            ```
+            
+            4. **Visualizations (if applicable):** (Describe any plots or charts, provide visualization code)
+            
+            5. **Statistical Context:** (Include relevant statistical measures, p-values, confidence intervals)
+            
+            6. **Recommendations:** (Provide actionable insights and next steps)
+            
+            IMPORTANT GUIDELINES:
+            - Use the RAG context data to provide accurate, specific insights
+            - Focus on the {query_intent.type.value} analysis type
+            - Generate executable Python code when appropriate
+            - Provide statistical rigor appropriate for biostatistical analysis
+            - Interpret results in clinical/practical context
+            - Always structure your response with the exact format above
+            
+            AVAILABLE LIBRARIES:
+            pandas, numpy, scipy, statsmodels, matplotlib, seaborn, plotly, lifelines, sklearn, and more
+            
+            Please respond as a professional biostatistician would - with expertise, precision, and clear communication.
+            """
+            
+        except Exception as rag_error:
+            # Fallback to original context if RAG fails
+            logger.error(f"RAG system error: {rag_error}")
+            context_chunks = []
+            query_intent = QueryIntent(
+                type=QueryType.DESCRIPTIVE,
+                variables=[],
+                operations=[],
+                filters={},
+                confidence=0.5,
+                statistical_tests=[],
+                visualization_type=None
+            )
+            
+            # Original context for fallback
+            csv_preview = session.get('csv_preview', {})
+            columns = csv_preview.get('columns', [])
+            dtypes = csv_preview.get('dtypes', {})
+            null_counts = csv_preview.get('null_counts', {})
+            describe_stats = csv_preview.get('describe', {})
+            
+            system_prompt = f"""
+            You are an Expert AI Data Scientist and Biostatistician. You have been provided with a medical/research dataset: {session['file_name']}
+            
+            DATASET OVERVIEW:
+            - Shape: {csv_preview.get('shape', 'Unknown')} (rows × columns)
+            - Columns: {columns}
+            - Data Types: {dtypes}
+            - Missing Values: {null_counts}
+            - Statistical Summary: {describe_stats}
+            
+            Please provide comprehensive biostatistical analysis and insights.
+            
+            RESPONSE STRUCTURE REQUIRED:
+            You MUST structure your response EXACTLY as follows:
+            
+            1. **Answer:** (Provide a direct, concise answer to the question)
+            
+            2. **Explanation:** (Provide detailed explanation of the analysis and methodology)
+            
+            3. **Code (if applicable):**
+            ```python
+            # Python code for analysis/visualization
+            ```
+            
+            4. **Visualizations (if applicable):** (Describe any plots or charts)
+            
+            Always respond as a professional biostatistician would.
+            """
         
         # Chat with Gemini using stable model
         chat = LlmChat(
             api_key=gemini_api_key,
             session_id=session_id,
-            system_message=context
+            system_message=system_prompt
         ).with_model("gemini", "gemini-2.5-flash")
         
         response = await chat.send_message(UserMessage(text=message))
         
-        # Save assistant response
-        assistant_message = ChatMessage(
-            session_id=session_id,
-            role="assistant",
-            content=response
-        )
+        # Generate structured response using ResponseGenerator
+        processing_time = time.time() - start_time
+        
+        try:
+            structured_response = response_generator.generate_structured_response(
+                query=message,
+                query_intent=query_intent,
+                context_chunks=context_chunks,
+                llm_response=response,
+                processing_time=processing_time
+            )
+            
+            # Format response for frontend
+            formatted_response = response_generator.format_response_for_frontend(structured_response)
+            
+            # Save enhanced assistant response
+            assistant_message = ChatMessage(
+                session_id=session_id,
+                role="assistant",
+                content=formatted_response,
+                metadata={
+                    "query_type": query_intent.type.value,
+                    "query_confidence": query_intent.confidence,
+                    "response_confidence": structured_response.confidence_score,
+                    "processing_time": processing_time,
+                    "context_chunks_used": len(context_chunks),
+                    "has_code": "```python" in response,
+                    "rag_enabled": len(context_chunks) > 0
+                }
+            )
+            
+            final_response = formatted_response
+            
+        except Exception as response_error:
+            # Fallback to original response if structured response fails
+            logger.error(f"Response generation error: {response_error}")
+            final_response = response
+            
+            assistant_message = ChatMessage(
+                session_id=session_id,
+                role="assistant",
+                content=response,
+                metadata={
+                    "rag_enabled": False,
+                    "processing_time": processing_time,
+                    "error": str(response_error)
+                }
+            )
+        
         await db.chat_messages.insert_one(assistant_message.dict())
         
-        return {"response": response}
+        return {"response": final_response}
         
     except Exception as e:
         error_msg = str(e)
@@ -1399,6 +1488,7 @@ async def chat_with_llm(session_id: str, message: str = Form(...), gemini_api_ke
                 detail="Invalid API key or request. Please check your Gemini API key and try again."
             )
         else:
+            raise HTTPException(status_code=500, detail=str(e))
             raise HTTPException(status_code=500, detail=f"LLM Error: {error_msg}")
 
 @api_router.post("/sessions/{session_id}/execute")
