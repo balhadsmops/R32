@@ -33,7 +33,11 @@ from lifelines import KaplanMeierFitter, CoxPHFitter
 from lifelines.statistics import logrank_test
 import warnings
 import time
+import logging
 warnings.filterwarnings('ignore')
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Import comprehensive data analysis services
 from simple_data_analysis_service import ComprehensiveDataAnalyzer
