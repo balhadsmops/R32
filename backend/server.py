@@ -1194,6 +1194,14 @@ async def create_session(file: UploadFile = File(...)):
         # Save session to database first
         await db.chat_sessions.insert_one(session.dict())
         
+        # Create RAG vector database collection for this session
+        try:
+            collection_name = rag_service.create_collection(session.id, df, file.filename)
+            logger.info(f"Created RAG collection: {collection_name}")
+        except Exception as rag_error:
+            logger.error(f"Failed to create RAG collection: {rag_error}")
+            # Continue without RAG capabilities
+        
         # Run basic comprehensive data analysis (fast)
         try:
             # Use basic analyzer for fast uploads
