@@ -435,12 +435,17 @@ class DataChunker:
             if df[col].dtype in ['object']:
                 value_counts = df[col].value_counts()
                 content += f"Categories: {list(value_counts.head(5).index)}\n"
-                content += f"Most frequent: {value_counts.index[0]} ({value_counts.iloc[0]} occurrences)\n"
+                content += f"Most frequent: {value_counts.index[0]} ({int(value_counts.iloc[0])} occurrences)\n"
             else:
-                content += f"Range: {df[col].min():.2f} to {df[col].max():.2f}\n"
-                content += f"Mean: {df[col].mean():.2f}, Std: {df[col].std():.2f}\n"
+                min_val = float(df[col].min())
+                max_val = float(df[col].max())
+                mean_val = float(df[col].mean())
+                std_val = float(df[col].std())
+                content += f"Range: {min_val:.2f} to {max_val:.2f}\n"
+                content += f"Mean: {mean_val:.2f}, Std: {std_val:.2f}\n"
             
-            content += f"Missing values: {df[col].isnull().sum()}\n\n"
+            missing_count = int(df[col].isnull().sum())
+            content += f"Missing values: {missing_count}\n\n"
         
         return content
     
