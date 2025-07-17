@@ -50,3 +50,5 @@ ydata-profiling>=4.6.0
 great-expectations>=0.18.0,<1.0.0
 sweetviz>=2.3.0
 patsy>=1.0.0
+chromadb>=1.0.15
+sentence-transformers>=5.0.0
