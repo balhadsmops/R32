@@ -521,9 +521,9 @@ class DataChunker:
     def _calculate_column_stats(self, df: pd.DataFrame) -> Dict[str, Any]:
         """Calculate statistical context for column group"""
         stats = {
-            'column_count': len(df.columns),
-            'total_values': df.size,
-            'missing_values': df.isnull().sum().sum()
+            'column_count': int(len(df.columns)),
+            'total_values': int(df.size),
+            'missing_values': int(df.isnull().sum().sum())
         }
         
         if df.select_dtypes(include=[np.number]).empty:
@@ -532,16 +532,17 @@ class DataChunker:
             for col in df.columns:
                 if df[col].dtype == 'object':
                     stats['categorical_stats'][col] = {
-                        'unique_count': df[col].nunique(),
-                        'most_frequent': df[col].mode().iloc[0] if not df[col].mode().empty else None
+                        'unique_count': int(df[col].nunique()),
+                        'most_frequent': str(df[col].mode().iloc[0]) if not df[col].mode().empty else None
                     }
         else:
             # Numeric statistics
             numeric_df = df.select_dtypes(include=[np.number])
             stats['numeric_stats'] = {
-                'means': numeric_df.mean().to_dict(),
-                'stds': numeric_df.std().to_dict(),
-                'correlations': numeric_df.corr().to_dict() if len(numeric_df.columns) > 1 else {}
+                'means': {k: float(v) for k, v in numeric_df.mean().to_dict().items()},
+                'stds': {k: float(v) for k, v in numeric_df.std().to_dict().items()},
+                'correlations': {k: {k2: float(v2) for k2, v2 in v.items()} 
+                               for k, v in numeric_df.corr().to_dict().items()} if len(numeric_df.columns) > 1 else {}
             }
         
         return stats
