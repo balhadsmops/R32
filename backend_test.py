@@ -3838,10 +3838,81 @@ print(bp_by_gender)
 
 if __name__ == "__main__":
     tester = BackendTester()
-    # Run fast CSV upload tests focused on the review request
-    print("🚀 Starting Fast CSV Upload Testing...")
-    results = tester.test_fast_csv_upload_post_profiling_disable()
     
-    print(f"\n{'=' * 80}")
-    print("TESTING COMPLETE")
+    print("🚀 Starting Comprehensive RAG System Testing for AI Statistical Analysis App")
     print("=" * 80)
+    
+    # Test results tracking
+    test_results = {}
+    
+    # Core API Tests
+    print("\n📋 CORE API TESTS")
+    print("-" * 40)
+    test_results['csv_upload'] = tester.test_csv_upload_api_fast()
+    test_results['session_management'] = tester.test_session_management()
+    test_results['gemini_llm'] = tester.test_gemini_llm_integration()
+    test_results['python_execution'] = tester.test_python_execution_sandbox()
+    test_results['analysis_suggestions'] = tester.test_statistical_analysis_suggestions()
+    
+    # RAG System Tests
+    print("\n🧠 RAG SYSTEM TESTS")
+    print("-" * 40)
+    test_results['rag_service'] = tester.test_rag_service_functionality()
+    test_results['query_classification'] = tester.test_query_classification_system()
+    test_results['semantic_search'] = tester.test_semantic_search_capabilities()
+    test_results['data_chunking'] = tester.test_data_chunking_strategies()
+    test_results['rag_chat_integration'] = tester.test_rag_chat_integration()
+    test_results['medical_data_examples'] = tester.test_medical_data_examples()
+    
+    # Enhanced Features Tests
+    print("\n⚡ ENHANCED FEATURES TESTS")
+    print("-" * 40)
+    test_results['enhanced_llm'] = tester.test_enhanced_llm_intelligence()
+    test_results['visualization_libraries'] = tester.test_new_visualization_libraries()
+    test_results['analysis_history'] = tester.test_analysis_history_endpoints()
+    test_results['basic_analysis'] = tester.test_basic_analysis_after_profiling_disabled()
+    
+    # Comprehensive Integration Tests
+    print("\n🔄 COMPREHENSIVE INTEGRATION TESTS")
+    print("-" * 40)
+    test_results['gemini_comprehensive'] = tester.test_updated_gemini_integration_comprehensive()
+    
+    # Print final results
+    print("\n" + "=" * 80)
+    print("🎯 FINAL RAG SYSTEM TEST RESULTS SUMMARY")
+    print("=" * 80)
+    
+    passed_tests = []
+    failed_tests = []
+    
+    for test_name, result in test_results.items():
+        status = "✅ PASSED" if result else "❌ FAILED"
+        print(f"{test_name.replace('_', ' ').title():<35} {status}")
+        
+        if result:
+            passed_tests.append(test_name)
+        else:
+            failed_tests.append(test_name)
+    
+    print("-" * 80)
+    print(f"📊 OVERALL RESULTS: {len(passed_tests)}/{len(test_results)} tests passed ({len(passed_tests)/len(test_results)*100:.1f}%)")
+    
+    # RAG-specific summary
+    rag_tests = ['rag_service', 'query_classification', 'semantic_search', 'data_chunking', 'rag_chat_integration', 'medical_data_examples']
+    rag_passed = sum(1 for test in rag_tests if test_results.get(test, False))
+    
+    print(f"🧠 RAG SYSTEM RESULTS: {rag_passed}/{len(rag_tests)} RAG tests passed ({rag_passed/len(rag_tests)*100:.1f}%)")
+    
+    if failed_tests:
+        print(f"❌ Failed tests: {', '.join(failed_tests)}")
+    
+    if len(passed_tests) >= len(test_results) * 0.8:  # 80% pass rate
+        print("🎉 RAG SYSTEM TESTING SUCCESSFUL - System ready for production!")
+        if rag_passed >= len(rag_tests) * 0.8:
+            print("🧠 RAG functionality is working excellently!")
+        else:
+            print("⚠️ Some RAG features may need attention")
+    else:
+        print("⚠️ RAG SYSTEM TESTING NEEDS ATTENTION - Some critical issues found")
+        
+    print("\n" + "=" * 80)
