@@ -455,7 +455,7 @@ class DataChunker:
         
         content += f"Dataset shape: {df.shape[0]} rows, {df.shape[1]} columns\n"
         content += f"Data types: {df.dtypes.value_counts().to_dict()}\n"
-        content += f"Missing values: {df.isnull().sum().sum()} total\n\n"
+        content += f"Missing values: {int(df.isnull().sum().sum())} total\n\n"
         
         # Numeric variables summary
         numeric_df = df.select_dtypes(include=[np.number])
@@ -469,7 +469,8 @@ class DataChunker:
         if not categorical_df.empty:
             content += "Categorical Variables Summary:\n"
             for col in categorical_df.columns:
-                content += f"- {col}: {categorical_df[col].nunique()} unique values\n"
+                unique_count = int(categorical_df[col].nunique())
+                content += f"- {col}: {unique_count} unique values\n"
             content += "\n"
         
         return content
