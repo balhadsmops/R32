@@ -410,7 +410,9 @@ class DataChunker:
         # Add basic statistics
         content += "Sample statistics:\n"
         for col in chunk_df.select_dtypes(include=[np.number]).columns:
-            content += f"- {col}: mean={chunk_df[col].mean():.2f}, std={chunk_df[col].std():.2f}\n"
+            mean_val = float(chunk_df[col].mean())
+            std_val = float(chunk_df[col].std())
+            content += f"- {col}: mean={mean_val:.2f}, std={std_val:.2f}\n"
         
         # Add categorical summaries
         for col in chunk_df.select_dtypes(include=['object']).columns:
