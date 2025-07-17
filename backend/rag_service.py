@@ -499,21 +499,21 @@ class DataChunker:
     def _calculate_chunk_stats(self, chunk_df: pd.DataFrame) -> Dict[str, Any]:
         """Calculate statistical context for chunk"""
         stats = {
-            'row_count': len(chunk_df),
-            'column_count': len(chunk_df.columns),
-            'missing_values': chunk_df.isnull().sum().sum(),
-            'numeric_columns': len(chunk_df.select_dtypes(include=[np.number]).columns),
-            'categorical_columns': len(chunk_df.select_dtypes(include=['object']).columns)
+            'row_count': int(len(chunk_df)),
+            'column_count': int(len(chunk_df.columns)),
+            'missing_values': int(chunk_df.isnull().sum().sum()),
+            'numeric_columns': int(len(chunk_df.select_dtypes(include=[np.number]).columns)),
+            'categorical_columns': int(len(chunk_df.select_dtypes(include=['object']).columns))
         }
         
         # Add basic statistics for numeric columns
         numeric_df = chunk_df.select_dtypes(include=[np.number])
         if not numeric_df.empty:
             stats['numeric_stats'] = {
-                'means': numeric_df.mean().to_dict(),
-                'stds': numeric_df.std().to_dict(),
-                'mins': numeric_df.min().to_dict(),
-                'maxs': numeric_df.max().to_dict()
+                'means': {k: float(v) for k, v in numeric_df.mean().to_dict().items()},
+                'stds': {k: float(v) for k, v in numeric_df.std().to_dict().items()},
+                'mins': {k: float(v) for k, v in numeric_df.min().to_dict().items()},
+                'maxs': {k: float(v) for k, v in numeric_df.max().to_dict().items()}
             }
         
         return stats
