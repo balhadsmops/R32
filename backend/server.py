@@ -37,6 +37,10 @@ warnings.filterwarnings('ignore')
 # Import comprehensive data analysis services
 from simple_data_analysis_service import ComprehensiveDataAnalyzer
 
+# Import enhanced RAG services
+from rag_service import EnhancedRAGService, QueryType, QueryIntent
+from enhanced_response_service import ResponseGenerator, StructuredResponse
+
 # New models for Julius AI-style sectioned analysis
 class AnalysisSection(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
