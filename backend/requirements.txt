@@ -55,3 +55,8 @@ sentence-transformers>=5.0.0
 overrides>=7.0.0
 tenacity
 pybase64
+-e jsonschema
+attrs
+rpds-py
+referencing
+jsonschema-specifications
