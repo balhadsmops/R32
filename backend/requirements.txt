@@ -62,3 +62,4 @@ referencing
 jsonschema-specifications
 -e httpx
 httpcore
+litellm
