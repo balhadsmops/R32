@@ -1531,9 +1531,9 @@ async def execute_python_code(session_id: str, request: PythonExecutionRequest):
             'pio': pio,
             'sm': sm,
             'mcnemar': mcnemar,
-            'KaplanMeierFitter': KaplanMeierFitter,
-            'CoxPHFitter': CoxPHFitter,
-            'logrank_test': logrank_test,
+            # 'KaplanMeierFitter': KaplanMeierFitter,
+            # 'CoxPHFitter': CoxPHFitter,
+            # 'logrank_test': logrank_test,
             'datetime': datetime,
             'json': json,
             # Add commonly used data analysis variables
