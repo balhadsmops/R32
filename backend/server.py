@@ -1308,42 +1308,51 @@ async def chat_with_llm(session_id: str, message: str = Form(...), gemini_api_ke
         await db.chat_messages.insert_one(user_message.dict())
         
         # Enhanced RAG-powered context retrieval
-        try:
-            # Query the RAG system for relevant context
-            context_chunks, query_intent = rag_service.query_collection(
-                session_id=session_id,
-                query=message,
-                n_results=5
-            )
+        rag_context = ""
+        query_intent = None
+        
+        if RAG_ENABLED and rag_service and response_generator:
+            try:
+                # Query the RAG system for relevant context
+                context_chunks, query_intent = rag_service.query_collection(
+                    session_id=session_id,
+                    query=message,
+                    n_results=5
+                )
+                
+                # Get query-specific template
+                template = response_generator.response_templates.get(
+                    query_intent.type, 
+                    response_generator.response_templates[QueryType.DESCRIPTIVE]
+                )(query_intent)
+                
+                # Build enhanced, smart RAG context
+                if context_chunks:
+                    rag_context = "**📊 Most Relevant Data Context:**\n\n"
+                    for i, chunk in enumerate(context_chunks):
+                        # Add smart context labeling based on content
+                        if 'statistical summary' in chunk.lower():
+                            label = f"📈 Statistical Summary {i+1}"
+                        elif 'correlation' in chunk.lower():
+                            label = f"🔗 Correlation Analysis {i+1}"
+                        elif 'rows' in chunk.lower() and 'columns' in chunk.lower():
+                            label = f"📋 Data Overview {i+1}"
+                        elif any(term in chunk.lower() for term in ['mean', 'std', 'median']):
+                            label = f"📊 Statistical Measures {i+1}"
+                        else:
+                            label = f"📄 Data Context {i+1}"
+                        
+                        rag_context += f"**{label}:**\n```\n{chunk}\n```\n\n"
+                else:
+                    rag_context = "**Note:** No specific RAG context retrieved. Using general dataset overview."
+            except Exception as rag_error:
+                logger.error(f"RAG query failed: {rag_error}")
+                rag_context = "**Note:** RAG context retrieval failed. Using general dataset overview."
+        else:
+            rag_context = "**Note:** RAG service not available. Using general dataset overview."
             
-            # Get query-specific template
-            template = response_generator.response_templates.get(
-                query_intent.type, 
-                response_generator.response_templates[QueryType.DESCRIPTIVE]
-            )(query_intent)
-            
-            # Build enhanced, smart RAG context
-            rag_context = ""
-            if context_chunks:
-                rag_context = "**📊 Most Relevant Data Context:**\n\n"
-                for i, chunk in enumerate(context_chunks):
-                    # Add smart context labeling based on content
-                    if 'statistical summary' in chunk.lower():
-                        label = f"📈 Statistical Summary {i+1}"
-                    elif 'correlation' in chunk.lower():
-                        label = f"🔗 Correlation Analysis {i+1}"
-                    elif 'rows' in chunk.lower() and 'columns' in chunk.lower():
-                        label = f"📋 Data Overview {i+1}"
-                    elif any(term in chunk.lower() for term in ['mean', 'std', 'median']):
-                        label = f"📊 Statistical Measures {i+1}"
-                    else:
-                        label = f"📄 Data Context {i+1}"
-                    
-                    rag_context += f"**{label}:**\n```\n{chunk}\n```\n\n"
-            else:
-                rag_context = "**Note:** No specific RAG context retrieved. Using general dataset overview."
-            
-            # Enhanced system prompt with RAG context
+        # Build system prompt with available context
+        if query_intent:
             system_prompt = f"""You are an Expert AI Data Scientist and Biostatistician with deep expertise in medical research and statistical analysis.
 
 DATASET CONTEXT:
@@ -1427,21 +1436,7 @@ RESPONSE REQUIREMENTS:
 7. Be comprehensive but concise in each section
 
 IMPORTANT: Each section must contain substantial, specific content derived from the RAG context. Do not use generic or placeholder text."""
-            
-        except Exception as rag_error:
-            # Fallback to original context if RAG fails
-            logger.error(f"RAG system error: {rag_error}")
-            context_chunks = []
-            query_intent = QueryIntent(
-                type=QueryType.DESCRIPTIVE,
-                variables=[],
-                operations=[],
-                filters={},
-                confidence=0.5,
-                statistical_tests=[],
-                visualization_type=None
-            )
-            
+        else:
             # Fallback system prompt with better structure
             csv_preview = session.get('csv_preview', {})
             columns = csv_preview.get('columns', [])
