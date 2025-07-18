@@ -421,52 +421,59 @@ class ResponseGenerator:
         }
     
     def format_response_for_frontend(self, structured_response: StructuredResponse) -> str:
-        """Format structured response for frontend display"""
-        formatted_response = ""
+        """Format structured response for frontend display with improved structure"""
+        # Since we're now using a more structured prompt, let's pass through the LLM response directly
+        # but add some metadata at the end
         
-        # Add answer section
-        if ResponseSection.ANSWER in structured_response.sections:
-            formatted_response += f"## 🎯 **Answer**\n\n{structured_response.sections[ResponseSection.ANSWER]}\n\n"
+        # Get the raw response from metadata if available
+        raw_response = structured_response.metadata.get('raw_llm_response', '')
         
-        # Add explanation section
-        if ResponseSection.EXPLANATION in structured_response.sections:
-            formatted_response += f"## 📊 **Explanation**\n\n{structured_response.sections[ResponseSection.EXPLANATION]}\n\n"
+        if not raw_response:
+            # Fallback to old format if no raw response
+            formatted_response = ""
+            
+            # Add answer section
+            if ResponseSection.ANSWER in structured_response.sections:
+                formatted_response += f"## 🎯 **Analysis**\n\n{structured_response.sections[ResponseSection.ANSWER]}\n\n"
+            
+            # Add explanation section
+            if ResponseSection.EXPLANATION in structured_response.sections:
+                formatted_response += f"## 📊 **Data Insights**\n\n{structured_response.sections[ResponseSection.EXPLANATION]}\n\n"
+            
+            # Add code section
+            if ResponseSection.CODE in structured_response.sections:
+                formatted_response += f"## 💻 **Code**\n\n```python\n{structured_response.sections[ResponseSection.CODE]}\n```\n\n"
+            
+            # Add visualizations
+            if ResponseSection.VISUALIZATIONS in structured_response.sections:
+                formatted_response += f"## 📈 **Visualizations**\n\n{structured_response.sections[ResponseSection.VISUALIZATIONS]}\n\n"
+            
+            # Add recommendations
+            if ResponseSection.RECOMMENDATIONS in structured_response.sections:
+                formatted_response += f"## 💡 **Recommendations**\n\n{structured_response.sections[ResponseSection.RECOMMENDATIONS]}\n\n"
+            
+            # Add other sections
+            if ResponseSection.DATA_INSIGHTS in structured_response.sections:
+                formatted_response += f"## 📈 **Additional Data Insights**\n\n{structured_response.sections[ResponseSection.DATA_INSIGHTS]}\n\n"
+            
+            if ResponseSection.STATISTICAL_CONTEXT in structured_response.sections:
+                formatted_response += f"## 📐 **Statistical Context**\n\n{structured_response.sections[ResponseSection.STATISTICAL_CONTEXT]}\n\n"
+            
+            if ResponseSection.METHODOLOGY in structured_response.sections:
+                formatted_response += f"## 🔬 **Methodology**\n\n{structured_response.sections[ResponseSection.METHODOLOGY]}\n\n"
+            
+            if ResponseSection.LIMITATIONS in structured_response.sections:
+                formatted_response += f"## ⚠️ **Limitations**\n\n{structured_response.sections[ResponseSection.LIMITATIONS]}\n\n"
+            
+            if ResponseSection.NEXT_STEPS in structured_response.sections:
+                formatted_response += f"## 🚀 **Next Steps**\n\n{structured_response.sections[ResponseSection.NEXT_STEPS]}\n\n"
+        else:
+            # Use the raw response since we're now using structured prompts
+            formatted_response = raw_response
         
-        # Add data insights section
-        if ResponseSection.DATA_INSIGHTS in structured_response.sections:
-            formatted_response += f"## 📈 **Data Insights**\n\n{structured_response.sections[ResponseSection.DATA_INSIGHTS]}\n\n"
-        
-        # Add statistical context
-        if ResponseSection.STATISTICAL_CONTEXT in structured_response.sections:
-            formatted_response += f"## 📐 **Statistical Context**\n\n{structured_response.sections[ResponseSection.STATISTICAL_CONTEXT]}\n\n"
-        
-        # Add methodology
-        if ResponseSection.METHODOLOGY in structured_response.sections:
-            formatted_response += f"## 🔬 **Methodology**\n\n{structured_response.sections[ResponseSection.METHODOLOGY]}\n\n"
-        
-        # Add code section
-        if ResponseSection.CODE in structured_response.sections:
-            formatted_response += f"## 💻 **Code**\n\n```python\n{structured_response.sections[ResponseSection.CODE]}\n```\n\n"
-        
-        # Add visualizations
-        if ResponseSection.VISUALIZATIONS in structured_response.sections:
-            formatted_response += f"## 📊 **Visualizations**\n\n{structured_response.sections[ResponseSection.VISUALIZATIONS]}\n\n"
-        
-        # Add recommendations
-        if ResponseSection.RECOMMENDATIONS in structured_response.sections:
-            formatted_response += f"## 💡 **Recommendations**\n\n{structured_response.sections[ResponseSection.RECOMMENDATIONS]}\n\n"
-        
-        # Add limitations
-        if ResponseSection.LIMITATIONS in structured_response.sections:
-            formatted_response += f"## ⚠️ **Limitations**\n\n{structured_response.sections[ResponseSection.LIMITATIONS]}\n\n"
-        
-        # Add next steps
-        if ResponseSection.NEXT_STEPS in structured_response.sections:
-            formatted_response += f"## 🚀 **Next Steps**\n\n{structured_response.sections[ResponseSection.NEXT_STEPS]}\n\n"
-        
-        # Add confidence indicator
+        # Add confidence indicator and metadata
         confidence_emoji = "🟢" if structured_response.confidence_score > 0.8 else "🟡" if structured_response.confidence_score > 0.6 else "🔴"
-        formatted_response += f"---\n*{confidence_emoji} Confidence: {structured_response.confidence_score:.1%} | Processing time: {structured_response.processing_time:.2f}s*"
+        formatted_response += f"\n\n---\n*{confidence_emoji} Confidence: {structured_response.confidence_score:.1%} | Processing time: {structured_response.processing_time:.2f}s*"
         
         return formatted_response
     
