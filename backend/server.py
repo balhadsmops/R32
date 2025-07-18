@@ -43,8 +43,13 @@ logger = logging.getLogger(__name__)
 from simple_data_analysis_service import ComprehensiveDataAnalyzer
 
 # Import enhanced RAG services
-from rag_service import EnhancedRAGService, QueryType, QueryIntent
-from enhanced_response_service import ResponseGenerator, StructuredResponse
+try:
+    from rag_service import EnhancedRAGService, QueryType, QueryIntent
+    from enhanced_response_service import ResponseGenerator, StructuredResponse
+    RAG_ENABLED = True
+except ImportError as e:
+    print(f"RAG service disabled due to missing dependencies: {e}")
+    RAG_ENABLED = False
 
 # New models for Julius AI-style sectioned analysis
 class AnalysisSection(BaseModel):
