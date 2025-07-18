@@ -1310,11 +1310,26 @@ async def chat_with_llm(session_id: str, message: str = Form(...), gemini_api_ke
                 response_generator.response_templates[QueryType.DESCRIPTIVE]
             )(query_intent)
             
-            # Build enhanced context with RAG results
-            rag_context = "\n\n".join([
-                f"**Relevant Data Context {i+1}:**\n{chunk}" 
-                for i, chunk in enumerate(context_chunks)
-            ])
+            # Build enhanced, smart RAG context
+            rag_context = ""
+            if context_chunks:
+                rag_context = "**📊 Most Relevant Data Context:**\n\n"
+                for i, chunk in enumerate(context_chunks):
+                    # Add smart context labeling based on content
+                    if 'statistical summary' in chunk.lower():
+                        label = f"📈 Statistical Summary {i+1}"
+                    elif 'correlation' in chunk.lower():
+                        label = f"🔗 Correlation Analysis {i+1}"
+                    elif 'rows' in chunk.lower() and 'columns' in chunk.lower():
+                        label = f"📋 Data Overview {i+1}"
+                    elif any(term in chunk.lower() for term in ['mean', 'std', 'median']):
+                        label = f"📊 Statistical Measures {i+1}"
+                    else:
+                        label = f"📄 Data Context {i+1}"
+                    
+                    rag_context += f"**{label}:**\n```\n{chunk}\n```\n\n"
+            else:
+                rag_context = "**Note:** No specific RAG context retrieved. Using general dataset overview."
             
             # Enhanced system prompt with RAG context
             system_prompt = f"""You are an Expert AI Data Scientist and Biostatistician with deep expertise in medical research and statistical analysis.
