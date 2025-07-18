@@ -29,8 +29,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 import statsmodels.api as sm
 from statsmodels.stats.contingency_tables import mcnemar
-from lifelines import KaplanMeierFitter, CoxPHFitter
-from lifelines.statistics import logrank_test
+# from lifelines import KaplanMeierFitter, CoxPHFitter
+# from lifelines.statistics import logrank_test
 import warnings
 import time
 import logging
