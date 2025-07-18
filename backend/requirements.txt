@@ -60,3 +60,5 @@ attrs
 rpds-py
 referencing
 jsonschema-specifications
+-e httpx
+httpcore
