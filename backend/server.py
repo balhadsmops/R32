@@ -891,8 +891,12 @@ class EnhancedPythonExecutionRequest(BaseModel):
 data_analyzer = ComprehensiveDataAnalyzer()
 
 # Initialize enhanced RAG services
-rag_service = EnhancedRAGService(persist_directory="/tmp/chroma_db")
-response_generator = ResponseGenerator()
+if RAG_ENABLED:
+    rag_service = EnhancedRAGService(persist_directory="/tmp/chroma_db")
+    response_generator = ResponseGenerator()
+else:
+    rag_service = None
+    response_generator = None
 
 @api_router.get("/sessions/{session_id}/comprehensive-analysis")
 async def get_comprehensive_analysis(session_id: str):
