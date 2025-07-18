@@ -72,8 +72,9 @@ class ResponseGenerator:
         # Calculate confidence score
         confidence_score = self._calculate_confidence_score(enhanced_sections, context_chunks, query_intent)
         
-        # Generate metadata
+        # Generate metadata including raw response
         metadata = self._generate_response_metadata(query, query_intent, context_chunks, llm_response)
+        metadata['raw_llm_response'] = llm_response  # Store the raw LLM response for direct use
         
         return StructuredResponse(
             query=query,
