@@ -70,7 +70,7 @@ function App() {
     formData.append('file', selectedFile);
 
     try {
-      const response = await axios.post(`${API}/upload`, formData, {
+      const response = await axios.post(`${API}/sessions`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
