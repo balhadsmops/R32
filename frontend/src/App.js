@@ -16,7 +16,9 @@ function App() {
   const [executionResults, setExecutionResults] = useState([]);
   const [analysisHistory, setAnalysisHistory] = useState([]);
   const [showApiModal, setShowApiModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
+  const [darkMode, setDarkMode] = useState(localStorage.getItem('darkMode') !== 'false');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('results');
