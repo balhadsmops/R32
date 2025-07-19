@@ -481,8 +481,8 @@ function App() {
   // API Key Modal
   const ApiKeyModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-lg p-6 w-96 border border-gray-700">
-        <h3 className="text-lg font-semibold mb-4 text-white">Enter Gemini API Key</h3>
+      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-6 w-96 border ${darkMode ? 'border-gray-600' : 'border-gray-200'} shadow-2xl`}>
+        <h3 className={`text-lg font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Enter Gemini API Key</h3>
         <input
           type="password"
           value={apiKey}
@@ -499,6 +499,81 @@ function App() {
           </button>
           <button onClick={saveApiKey} className="btn-primary">
             Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Settings Modal
+  const SettingsModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-6 w-96 border ${darkMode ? 'border-gray-600' : 'border-gray-200'} shadow-2xl`}>
+        <div className="flex items-center justify-between mb-6">
+          <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Settings</h3>
+          <button
+            onClick={() => setShowSettingsModal(false)}
+            className={`${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} text-xl`}
+          >
+            ×
+          </button>
+        </div>
+        
+        {/* Theme Toggle */}
+        <div className="mb-6">
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+            Theme
+          </label>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={toggleDarkMode}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg border transition-all ${
+                darkMode 
+                  ? 'bg-gray-700 border-gray-600 text-white' 
+                  : 'bg-gray-100 border-gray-300 text-gray-900'
+              }`}
+            >
+              <span>{darkMode ? '🌙' : '☀️'}</span>
+              <span className="text-sm">{darkMode ? 'Dark Mode' : 'Light Mode'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* API Key */}
+        <div className="mb-6">
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+            Gemini API Key
+          </label>
+          <div className="flex space-x-2">
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Enter your API key"
+              className={`flex-1 px-3 py-2 rounded-lg border ${
+                darkMode 
+                  ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+              } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+            />
+            <button
+              onClick={saveApiKey}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              Save
+            </button>
+          </div>
+          <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Google AI Studio</a>
+          </p>
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowSettingsModal(false)}
+            className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            Close
           </button>
         </div>
       </div>
