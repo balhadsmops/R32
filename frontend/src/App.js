@@ -27,11 +27,20 @@ function App() {
   useEffect(() => {
     fetchSessions();
     scrollToBottom();
-  }, []);
+    // Apply dark mode class to body
+    document.body.className = darkMode ? 'dark' : 'light';
+  }, [darkMode]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const toggleDarkMode = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem('darkMode', newMode);
+    document.body.className = newMode ? 'dark' : 'light';
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
