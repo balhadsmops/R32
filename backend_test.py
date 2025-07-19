@@ -13,7 +13,7 @@ import time
 from typing import Dict, Any, Optional
 
 # Configuration
-BACKEND_URL = "https://3c14d433-af57-455c-80ce-daa4e99f9d39.preview.emergentagent.com/api"
+BACKEND_URL = "https://b8633cdb-206e-4ba1-8f87-ca873dae437a.preview.emergentagent.com/api"
 TEST_API_KEY = "AIzaSyC3Z8XNz1HN0ZUzeXhDrpG66ZvNmbi7mNo"  # Use actual API key from backend .env
 
 class BackendTester:
