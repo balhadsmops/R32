@@ -189,7 +189,6 @@ function App() {
       };
 
       setExecutionResults(prev => [...prev, result]);
-      setActiveTab('results');
     } catch (error) {
       console.error('Error executing code:', error);
       const errorResult = {
