@@ -42,6 +42,10 @@ function App() {
     document.body.className = newMode ? 'dark' : 'light';
   };
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   const handleSuggestAnalysis = async () => {
     if (!currentSession || !apiKey) {
       setShowApiModal(true);
