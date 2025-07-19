@@ -921,22 +921,6 @@ function App() {
               </div>
             )}
           </div>
-                    onKeyPress={handleKeyPress}
-                    placeholder="Ask me anything about your data..."
-                    className="chat-input flex-1"
-                    disabled={isLoading}
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={isLoading || !newMessage.trim()}
-                    className="btn-primary"
-                  >
-                    Send
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* Right Panel */}
           {rightPanelOpen && currentSession && (
