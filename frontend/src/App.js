@@ -20,8 +20,6 @@ function App() {
   const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
   const [darkMode, setDarkMode] = useState(localStorage.getItem('darkMode') !== 'false');
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [rightPanelOpen, setRightPanelOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState('results');
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
