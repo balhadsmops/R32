@@ -42,8 +42,38 @@ function App() {
     document.body.className = newMode ? 'dark' : 'light';
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const handleSuggestAnalysis = async () => {
+    if (!currentSession || !apiKey) {
+      setShowApiModal(true);
+      return;
+    }
+
+    setIsLoading(true);
+    setNewMessage('');
+
+    try {
+      const response = await axios.post(
+        `${API}/sessions/${currentSession.id}/suggest-analysis`,
+        {},
+        {
+          headers: {
+            'X-API-Key': apiKey
+          }
+        }
+      );
+
+      const assistantMessage = { role: 'assistant', content: response.data.suggestions };
+      setMessages([...messages, assistantMessage]);
+    } catch (error) {
+      console.error('Error getting analysis suggestions:', error);
+      const errorMessage = { 
+        role: 'assistant', 
+        content: 'Sorry, I encountered an error while generating analysis suggestions. Please try again.' 
+      };
+      setMessages([...messages, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const fetchSessions = async () => {
