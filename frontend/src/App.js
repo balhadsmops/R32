@@ -666,58 +666,31 @@ function App() {
           </div>
         </div>
         
-        {/* Upload Section */}
+        {/* Upload Section - Replaced with New Chat Button */}
         <div className="px-6 py-6">
-          <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
-            uploading 
-              ? `border-blue-500 ${darkMode ? 'bg-blue-900/20' : 'bg-blue-50'}` 
-              : `${darkMode ? 'border-gray-600 hover:border-gray-500 bg-gray-750' : 'border-gray-300 hover:border-gray-400 bg-gray-50'}`
-          }`}>
-            <div className="mb-4">
-              <div className={`w-12 h-12 mx-auto rounded-xl flex items-center justify-center ${
-                darkMode ? 'bg-blue-600' : 'bg-blue-100'
-              }`}>
-                <svg className={`w-6 h-6 ${darkMode ? 'text-white' : 'text-blue-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-              </div>
-            </div>
-            <h3 className={`text-sm font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Upload CSV Dataset
-            </h3>
-            <p className={`text-xs mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Drag and drop your CSV file or click to browse
-            </p>
-            <label className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all ${
-              darkMode 
-                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                : 'bg-blue-500 hover:bg-blue-600 text-white'
-            }`}>
-              {uploading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  Choose File
-                </>
-              )}
-              <input
-                type="file"
-                accept=".csv"
-                onChange={handleFileUpload}
-                className="hidden"
-                disabled={uploading}
-              />
-            </label>
-          </div>
+          <button
+            onClick={() => {
+              // Create new session/chat functionality
+              setCurrentSession(null);
+              setMessages([]);
+              setNewMessage('');
+            }}
+            className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>New Chat</span>
+          </button>
+          
+          {/* Hidden file input for upload functionality */}
+          <input
+            type="file"
+            accept=".csv"
+            onChange={handleFileUpload}
+            className="hidden"
+            id="hidden-file-input"
+          />
         </div>
         
         {/* Sessions List */}
