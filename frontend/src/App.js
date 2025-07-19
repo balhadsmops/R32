@@ -581,42 +581,191 @@ function App() {
   );
 
   return (
-    <div className="app min-h-screen flex">
-      {/* Sidebar */}
-      <div className={`sidebar flex-shrink-0 w-64 h-screen flex flex-col transition-all duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <h1 className="text-lg font-semibold text-white">AI Statistical Analysis</h1>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="text-gray-400 hover:text-white lg:hidden"
-          >
-            ✕
-          </button>
+    <div className={`min-h-screen flex transition-colors duration-300 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      {/* Modern Sidebar */}
+      <div className={`flex-shrink-0 w-80 h-screen flex flex-col transition-all duration-300 ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      } ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r shadow-lg`}>
+        
+        {/* Sidebar Header */}
+        <div className={`flex items-center justify-between px-6 py-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <span className="text-white text-sm font-bold">AI</span>
+            </div>
+            <h1 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              Statistical Analysis
+            </h1>
+          </div>
+          
+          {/* Theme and Settings Controls */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={toggleDarkMode}
+              className={`p-2 rounded-lg transition-all ${
+                darkMode 
+                  ? 'text-gray-400 hover:text-white hover:bg-gray-700' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+              title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {darkMode ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                </svg>
+              )}
+            </button>
+            
+            <button
+              onClick={() => setShowSettingsModal(true)}
+              className={`p-2 rounded-lg transition-all ${
+                darkMode 
+                  ? 'text-gray-400 hover:text-white hover:bg-gray-700' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+              }`}
+              title="Settings"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
         </div>
         
-        <div className="p-4">
-          <UploadArea />
-        </div>
-        
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-4">
-          <h3 className="text-sm font-semibold text-gray-400 mb-3">Sessions</h3>
-          <div className="space-y-2">
-            {sessions.map((session) => (
-              <div
-                key={session.id}
-                onClick={() => handleSessionSelect(session)}
-                className={`sidebar-item cursor-pointer p-3 rounded-lg text-sm ${
-                  currentSession?.id === session.id ? 'active' : ''
-                }`}
-              >
-                <div className="font-medium text-white truncate">
-                  {session.filename || 'New Session'}
-                </div>
-                <div className="text-xs text-gray-400 mt-1">
-                  {new Date(session.created_at).toLocaleDateString()}
-                </div>
+        {/* Upload Section */}
+        <div className="px-6 py-6">
+          <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
+            uploading 
+              ? `border-blue-500 ${darkMode ? 'bg-blue-900/20' : 'bg-blue-50'}` 
+              : `${darkMode ? 'border-gray-600 hover:border-gray-500 bg-gray-750' : 'border-gray-300 hover:border-gray-400 bg-gray-50'}`
+          }`}>
+            <div className="mb-4">
+              <div className={`w-12 h-12 mx-auto rounded-xl flex items-center justify-center ${
+                darkMode ? 'bg-blue-600' : 'bg-blue-100'
+              }`}>
+                <svg className={`w-6 h-6 ${darkMode ? 'text-white' : 'text-blue-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
               </div>
-            ))}
+            </div>
+            <h3 className={`text-sm font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              Upload CSV Dataset
+            </h3>
+            <p className={`text-xs mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Drag and drop your CSV file or click to browse
+            </p>
+            <label className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all ${
+              darkMode 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}>
+              {uploading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Choose File
+                </>
+              )}
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="hidden"
+                disabled={uploading}
+              />
+            </label>
+          </div>
+        </div>
+        
+        {/* Sessions List */}
+        <div className="flex-1 overflow-y-auto px-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-sm font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Recent Sessions
+            </h3>
+            <span className={`text-xs px-2 py-1 rounded-full ${
+              darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'
+            }`}>
+              {sessions.length}
+            </span>
+          </div>
+          
+          <div className="space-y-2">
+            {sessions.length === 0 ? (
+              <div className={`text-center py-8 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                <svg className="w-8 h-8 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="text-sm">No sessions yet</p>
+                <p className="text-xs mt-1">Upload a CSV file to get started</p>
+              </div>
+            ) : (
+              sessions.map((session) => (
+                <div
+                  key={session.id}
+                  onClick={() => handleSessionSelect(session)}
+                  className={`group cursor-pointer p-3 rounded-xl transition-all ${
+                    currentSession?.id === session.id
+                      ? `${darkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'} shadow-lg`
+                      : `${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`
+                  }`}
+                >
+                  <div className="flex items-start space-x-3">
+                    <div className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center ${
+                      currentSession?.id === session.id
+                        ? 'bg-white/20'
+                        : `${darkMode ? 'bg-gray-600' : 'bg-gray-200'}`
+                    }`}>
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">
+                        {session.filename || 'Untitled Session'}
+                      </p>
+                      <p className={`text-xs mt-1 ${
+                        currentSession?.id === session.id
+                          ? 'text-white/70'
+                          : `${darkMode ? 'text-gray-500' : 'text-gray-500'}`
+                      }`}>
+                        {new Date(session.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+        
+        {/* API Key Status */}
+        <div className={`px-6 py-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          <div className={`flex items-center space-x-2 text-xs ${
+            apiKey 
+              ? `${darkMode ? 'text-green-400' : 'text-green-600'}` 
+              : `${darkMode ? 'text-yellow-400' : 'text-yellow-600'}`
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${apiKey ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+            <span>{apiKey ? 'API Key Configured' : 'API Key Required'}</span>
           </div>
         </div>
       </div>
