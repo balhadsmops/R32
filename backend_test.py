@@ -3836,83 +3836,267 @@ print(bp_by_gender)
             print(f"❌ Chat interface integration test failed with error: {str(e)}")
             return False
 
+    def test_csv_upload_with_sample_file(self) -> bool:
+        """Test CSV file upload using the sample medical data file"""
+        print("Testing CSV File Upload with Sample Medical Data...")
+        
+        try:
+            # Read the sample medical data file
+            with open('/app/examples/sample_medical_data.csv', 'r') as f:
+                csv_content = f.read()
+            
+            print(f"  Sample file loaded: {len(csv_content)} characters")
+            
+            # Test valid CSV upload
+            files = {
+                'file': ('sample_medical_data.csv', csv_content, 'text/csv')
+            }
+            
+            print("  Uploading sample medical data...")
+            start_time = time.time()
+            
+            response = requests.post(f"{BACKEND_URL}/sessions", files=files, timeout=30)
+            upload_time = time.time() - start_time
+            
+            print(f"  Upload completed in {upload_time:.2f} seconds")
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.session_id = data.get('id')
+                
+                print(f"  Session created: {self.session_id}")
+                
+                # Verify response structure
+                required_fields = ['id', 'title', 'file_name', 'csv_preview']
+                if all(field in data for field in required_fields):
+                    preview = data['csv_preview']
+                    
+                    # Check data dimensions
+                    shape = preview.get('shape', [0, 0])
+                    columns = preview.get('columns', [])
+                    
+                    print(f"  Dataset shape: {shape[0]} rows × {shape[1]} columns")
+                    print(f"  Columns: {columns}")
+                    
+                    # Verify medical data columns
+                    expected_columns = ['patient_id', 'age', 'gender', 'blood_pressure_systolic', 'diagnosis']
+                    found_columns = [col for col in expected_columns if col in columns]
+                    
+                    if len(found_columns) >= 4:
+                        print(f"✅ Medical data columns detected: {found_columns}")
+                        
+                        # Test invalid file upload
+                        print("  Testing invalid file rejection...")
+                        invalid_files = {
+                            'file': ('test.txt', 'invalid content', 'text/plain')
+                        }
+                        invalid_response = requests.post(f"{BACKEND_URL}/sessions", files=invalid_files, timeout=30)
+                        
+                        if invalid_response.status_code in [400, 422]:
+                            print("✅ Invalid file properly rejected")
+                            return True
+                        else:
+                            print("❌ Invalid file not properly rejected")
+                            return False
+                    else:
+                        print(f"❌ Expected medical columns not found. Found: {found_columns}")
+                        return False
+                else:
+                    print("❌ Response missing required fields")
+                    return False
+            else:
+                print(f"❌ CSV upload failed with status {response.status_code}")
+                print(f"Response: {response.text}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ CSV upload test failed with error: {str(e)}")
+            return False
+
+    def test_mongodb_session_storage(self) -> bool:
+        """Test MongoDB integration for session storage"""
+        print("Testing MongoDB Session Storage...")
+        
+        if not self.session_id:
+            print("❌ No session ID available for MongoDB testing")
+            return False
+        
+        try:
+            # Test retrieving the session from MongoDB
+            response = requests.get(f"{BACKEND_URL}/sessions/{self.session_id}")
+            
+            if response.status_code == 200:
+                session_data = response.json()
+                
+                # Verify session data structure
+                required_fields = ['id', 'title', 'file_name', 'csv_preview', 'created_at']
+                if all(field in session_data for field in required_fields):
+                    print("✅ Session properly stored in MongoDB")
+                    
+                    # Test retrieving all sessions
+                    all_sessions_response = requests.get(f"{BACKEND_URL}/sessions")
+                    
+                    if all_sessions_response.status_code == 200:
+                        sessions = all_sessions_response.json()
+                        
+                        # Find our session in the list
+                        our_session = next((s for s in sessions if s['id'] == self.session_id), None)
+                        
+                        if our_session:
+                            print("✅ Session found in sessions list")
+                            return True
+                        else:
+                            print("❌ Session not found in sessions list")
+                            return False
+                    else:
+                        print("❌ Failed to retrieve sessions list")
+                        return False
+                else:
+                    print(f"❌ Session data missing required fields: {required_fields}")
+                    return False
+            else:
+                print(f"❌ Failed to retrieve session: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ MongoDB session storage test failed: {str(e)}")
+            return False
+
+    def test_backend_error_handling(self) -> bool:
+        """Test backend error handling for various scenarios"""
+        print("Testing Backend Error Handling...")
+        
+        try:
+            # Test 1: Non-existent session
+            print("  Testing non-existent session handling...")
+            fake_session_id = "non-existent-session-id"
+            response = requests.get(f"{BACKEND_URL}/sessions/{fake_session_id}")
+            
+            if response.status_code == 404:
+                print("✅ Non-existent session properly handled (404)")
+            else:
+                print(f"❌ Non-existent session not properly handled: {response.status_code}")
+                return False
+            
+            # Test 2: Invalid file format
+            print("  Testing invalid file format handling...")
+            invalid_files = {
+                'file': ('test.json', '{"invalid": "json"}', 'application/json')
+            }
+            response = requests.post(f"{BACKEND_URL}/sessions", files=invalid_files, timeout=30)
+            
+            if response.status_code in [400, 422]:
+                error_detail = response.json().get('detail', '')
+                if 'CSV' in error_detail:
+                    print("✅ Invalid file format properly handled")
+                else:
+                    print("✅ Invalid file format handled (generic error)")
+            else:
+                print(f"❌ Invalid file format not properly handled: {response.status_code}")
+                return False
+            
+            # Test 3: Empty file
+            print("  Testing empty file handling...")
+            empty_files = {
+                'file': ('empty.csv', '', 'text/csv')
+            }
+            response = requests.post(f"{BACKEND_URL}/sessions", files=empty_files, timeout=30)
+            
+            if response.status_code in [400, 422, 500]:
+                print("✅ Empty file properly handled")
+            else:
+                print(f"❌ Empty file not properly handled: {response.status_code}")
+                return False
+            
+            print("✅ Backend error handling working properly")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Backend error handling test failed: {str(e)}")
+            return False
+
+    def run_csv_upload_focused_tests(self):
+        """Run focused tests for CSV upload functionality as requested"""
+        print("🚀 Starting CSV Upload Focused Testing...")
+        print("=" * 60)
+        
+        # Test 1: API Health Check
+        print("\n1. API Health Check")
+        health_result = self.test_api_health()
+        self.test_results['api_health'] = health_result
+        
+        # Test 2: CSV Upload with Sample File
+        print("\n2. CSV File Upload with Sample Medical Data")
+        upload_result = self.test_csv_upload_with_sample_file()
+        self.test_results['csv_upload_sample'] = upload_result
+        
+        # Test 3: MongoDB Session Storage
+        print("\n3. MongoDB Session Storage Verification")
+        mongodb_result = self.test_mongodb_session_storage()
+        self.test_results['mongodb_storage'] = mongodb_result
+        
+        # Test 4: Backend Error Handling
+        print("\n4. Backend Error Handling")
+        error_handling_result = self.test_backend_error_handling()
+        self.test_results['error_handling'] = error_handling_result
+        
+        # Test 5: Session Management
+        print("\n5. Session Management Endpoints")
+        session_result = self.test_session_management()
+        self.test_results['session_management'] = session_result
+        
+        # Test 6: Basic LLM Integration (if session created)
+        if self.session_id:
+            print("\n6. Basic LLM Integration Test")
+            llm_result = self.test_gemini_llm_integration()
+            self.test_results['basic_llm'] = llm_result
+        
+        # Print focused summary
+        self.print_csv_upload_summary()
+        
+        return self.test_results
+
+    def print_csv_upload_summary(self):
+        """Print summary of CSV upload focused tests"""
+        print("\n" + "=" * 60)
+        print("📊 CSV UPLOAD FOCUSED TEST SUMMARY")
+        print("=" * 60)
+        
+        total_tests = len(self.test_results)
+        passed_tests = sum(1 for result in self.test_results.values() if result)
+        
+        print(f"Total Tests: {total_tests}")
+        print(f"Passed: {passed_tests}")
+        print(f"Failed: {total_tests - passed_tests}")
+        print(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
+        
+        print("\nDetailed Results:")
+        for test_name, result in self.test_results.items():
+            status = "✅ PASS" if result else "❌ FAIL"
+            print(f"  {test_name}: {status}")
+        
+        if passed_tests == total_tests:
+            print("\n🎉 ALL CSV UPLOAD TESTS PASSED!")
+            print("The CSV file upload functionality is working correctly.")
+        elif passed_tests >= total_tests * 0.8:
+            print("\n✅ CSV UPLOAD TESTS MOSTLY SUCCESSFUL")
+            print("Most functionality is working, minor issues may exist.")
+        else:
+            print("\n❌ CSV UPLOAD TESTS FAILED")
+            print("Significant issues found with CSV upload functionality.")
+        
+        print("=" * 60)
+
 if __name__ == "__main__":
     tester = BackendTester()
     
-    print("🚀 Starting Comprehensive RAG System Testing for AI Statistical Analysis App")
-    print("=" * 80)
+    # Run CSV upload focused testing as requested
+    print("🎯 CSV UPLOAD FUNCTIONALITY TESTING")
+    print("=" * 60)
     
-    # Test results tracking
-    test_results = {}
+    # Run focused CSV upload tests
+    results = tester.run_csv_upload_focused_tests()
     
-    # Core API Tests
-    print("\n📋 CORE API TESTS")
-    print("-" * 40)
-    test_results['csv_upload'] = tester.test_csv_upload_api_fast()
-    test_results['session_management'] = tester.test_session_management()
-    test_results['gemini_llm'] = tester.test_gemini_llm_integration()
-    test_results['python_execution'] = tester.test_python_execution_sandbox()
-    test_results['analysis_suggestions'] = tester.test_statistical_analysis_suggestions()
-    
-    # RAG System Tests
-    print("\n🧠 RAG SYSTEM TESTS")
-    print("-" * 40)
-    test_results['rag_service'] = tester.test_rag_service_functionality()
-    test_results['query_classification'] = tester.test_query_classification_system()
-    test_results['semantic_search'] = tester.test_semantic_search_capabilities()
-    test_results['data_chunking'] = tester.test_data_chunking_strategies()
-    test_results['rag_chat_integration'] = tester.test_rag_chat_integration()
-    test_results['medical_data_examples'] = tester.test_medical_data_examples()
-    
-    # Enhanced Features Tests
-    print("\n⚡ ENHANCED FEATURES TESTS")
-    print("-" * 40)
-    test_results['enhanced_llm'] = tester.test_enhanced_llm_intelligence()
-    test_results['visualization_libraries'] = tester.test_new_visualization_libraries()
-    test_results['analysis_history'] = tester.test_analysis_history_endpoints()
-    test_results['basic_analysis'] = tester.test_basic_analysis_after_profiling_disabled()
-    
-    # Comprehensive Integration Tests
-    print("\n🔄 COMPREHENSIVE INTEGRATION TESTS")
-    print("-" * 40)
-    test_results['gemini_comprehensive'] = tester.test_updated_gemini_integration_comprehensive()
-    
-    # Print final results
-    print("\n" + "=" * 80)
-    print("🎯 FINAL RAG SYSTEM TEST RESULTS SUMMARY")
-    print("=" * 80)
-    
-    passed_tests = []
-    failed_tests = []
-    
-    for test_name, result in test_results.items():
-        status = "✅ PASSED" if result else "❌ FAILED"
-        print(f"{test_name.replace('_', ' ').title():<35} {status}")
-        
-        if result:
-            passed_tests.append(test_name)
-        else:
-            failed_tests.append(test_name)
-    
-    print("-" * 80)
-    print(f"📊 OVERALL RESULTS: {len(passed_tests)}/{len(test_results)} tests passed ({len(passed_tests)/len(test_results)*100:.1f}%)")
-    
-    # RAG-specific summary
-    rag_tests = ['rag_service', 'query_classification', 'semantic_search', 'data_chunking', 'rag_chat_integration', 'medical_data_examples']
-    rag_passed = sum(1 for test in rag_tests if test_results.get(test, False))
-    
-    print(f"🧠 RAG SYSTEM RESULTS: {rag_passed}/{len(rag_tests)} RAG tests passed ({rag_passed/len(rag_tests)*100:.1f}%)")
-    
-    if failed_tests:
-        print(f"❌ Failed tests: {', '.join(failed_tests)}")
-    
-    if len(passed_tests) >= len(test_results) * 0.8:  # 80% pass rate
-        print("🎉 RAG SYSTEM TESTING SUCCESSFUL - System ready for production!")
-        if rag_passed >= len(rag_tests) * 0.8:
-            print("🧠 RAG functionality is working excellently!")
-        else:
-            print("⚠️ Some RAG features may need attention")
-    else:
-        print("⚠️ RAG SYSTEM TESTING NEEDS ATTENTION - Some critical issues found")
-        
-    print("\n" + "=" * 80)
+    print("\n" + "=" * 60)
+    print("🎯 TESTING COMPLETE")
+    print("=" * 60)
