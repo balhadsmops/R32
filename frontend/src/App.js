@@ -808,7 +808,7 @@ function App() {
         <div className={`flex items-center justify-between px-6 py-4 border-b ${
           darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
         } shadow-sm`}>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             {!sidebarOpen && (
               <button
                 onClick={() => setSidebarOpen(true)}
@@ -833,22 +833,6 @@ function App() {
                 </p>
               )}
             </div>
-          </div>
-          
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setRightPanelOpen(!rightPanelOpen)}
-              className={`p-2 rounded-lg ${
-                darkMode 
-                  ? 'text-gray-400 hover:text-white hover:bg-gray-700' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              }`}
-              title="Toggle Results Panel"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 002 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h2a2 2 0 002-2z" />
-              </svg>
-            </button>
           </div>
         </div>
 
