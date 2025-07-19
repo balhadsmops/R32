@@ -3836,6 +3836,29 @@ print(bp_by_gender)
             print(f"❌ Chat interface integration test failed with error: {str(e)}")
             return False
 
+    def test_api_health(self) -> bool:
+        """Test API health check"""
+        print("Testing API Health Check...")
+        
+        try:
+            response = requests.get(f"{BACKEND_URL}/", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'message' in data:
+                    print("✅ API health check passed")
+                    return True
+                else:
+                    print("❌ API health check response invalid")
+                    return False
+            else:
+                print(f"❌ API health check failed with status {response.status_code}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ API health check failed with error: {str(e)}")
+            return False
+
     def test_csv_upload_with_sample_file(self) -> bool:
         """Test CSV file upload using the sample medical data file"""
         print("Testing CSV File Upload with Sample Medical Data...")
