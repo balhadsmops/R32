@@ -956,32 +956,46 @@ function App() {
             )}
           </div>
 
-          {/* Right Panel */}
+          {/* Modern Right Panel */}
           {rightPanelOpen && currentSession && (
-            <div className="w-80 bg-gray-900 border-l border-gray-700 flex flex-col">
-              <div className="border-b border-gray-700 p-4">
+            <div className={`w-80 border-l flex flex-col ${
+              darkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'
+            }`}>
+              <div className={`border-b p-4 ${darkMode ? 'border-gray-600' : 'border-gray-200'}`}>
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-white">Results</h3>
+                  <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Analysis Results
+                  </h3>
                   <button
                     onClick={() => setRightPanelOpen(false)}
-                    className="text-gray-400 hover:text-white"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="flex space-x-2 mt-3">
-                  <button
-                    onClick={() => setActiveTab('results')}
-                    className={`text-sm px-3 py-1 rounded ${
-                      activeTab === 'results' ? 'bg-blue-600 text-white' : 'text-gray-400'
+                    className={`p-1 rounded-lg ${
+                      darkMode 
+                        ? 'text-gray-400 hover:text-white hover:bg-gray-700' 
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                     }`}
                   >
-                    Code Results
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="flex space-x-1 mt-3">
+                  <button
+                    onClick={() => setActiveTab('results')}
+                    className={`flex-1 text-sm py-2 px-3 rounded-lg font-medium transition-all ${
+                      activeTab === 'results'
+                        ? `${darkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'} shadow-md`
+                        : `${darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`
+                    }`}
+                  >
+                    Results
                   </button>
                   <button
                     onClick={() => setActiveTab('history')}
-                    className={`text-sm px-3 py-1 rounded ${
-                      activeTab === 'history' ? 'bg-blue-600 text-white' : 'text-gray-400'
+                    className={`flex-1 text-sm py-2 px-3 rounded-lg font-medium transition-all ${
+                      activeTab === 'history'
+                        ? `${darkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'} shadow-md`
+                        : `${darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`
                     }`}
                   >
                     History
@@ -991,32 +1005,45 @@ function App() {
 
               <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
                 {activeTab === 'results' ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {executionResults.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        <div className="text-4xl mb-2">⚡</div>
-                        <p className="text-sm">No code executed yet</p>
+                      <div className="text-center py-12">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
+                          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </div>
+                        <p className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                          No code executed yet
+                        </p>
+                        <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                          Results will appear here
+                        </p>
                       </div>
                     ) : (
                       executionResults.slice().reverse().map((result) => (
-                        <div key={result.id} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
-                          <div className="text-xs text-gray-400 mb-2">{result.timestamp}</div>
+                        <div key={result.id} className={`rounded-xl p-4 border ${
+                          darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
+                        } shadow-sm`}>
+                          <div className={`text-xs mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {result.timestamp}
+                          </div>
                           {result.output && (
-                            <div className="bg-green-900 text-green-100 p-2 rounded text-sm mb-2">
-                              <pre className="whitespace-pre-wrap">{result.output}</pre>
+                            <div className="bg-green-500/10 border border-green-500/20 text-green-600 p-3 rounded-lg text-sm mb-3">
+                              <pre className="whitespace-pre-wrap font-mono">{result.output}</pre>
                             </div>
                           )}
                           {result.error && (
-                            <div className="bg-red-900 text-red-100 p-2 rounded text-sm mb-2">
-                              <pre className="whitespace-pre-wrap">{result.error}</pre>
+                            <div className="bg-red-500/10 border border-red-500/20 text-red-600 p-3 rounded-lg text-sm mb-3">
+                              <pre className="whitespace-pre-wrap font-mono">{result.error}</pre>
                             </div>
                           )}
                           {result.image && (
-                            <div className="mt-2">
+                            <div className="mt-3">
                               <img 
                                 src={`data:image/png;base64,${result.image}`} 
-                                alt="Plot" 
-                                className="max-w-full h-auto rounded"
+                                alt="Generated Plot" 
+                                className="max-w-full h-auto rounded-lg shadow-md"
                               />
                             </div>
                           )}
@@ -1025,9 +1052,18 @@ function App() {
                     )}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <div className="text-4xl mb-2">📚</div>
-                    <p className="text-sm">Analysis history coming soon</p>
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center">
+                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                    </div>
+                    <p className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      Analysis History
+                    </p>
+                    <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                      Coming soon
+                    </p>
                   </div>
                 )}
               </div>
@@ -1036,8 +1072,9 @@ function App() {
         </div>
       </div>
 
-      {/* API Key Modal */}
+      {/* Modals */}
       {showApiModal && <ApiKeyModal />}
+      {showSettingsModal && <SettingsModal />}
     </div>
   );
 }
