@@ -3,7 +3,7 @@ import axios from 'axios';
 import './App.css';
 
 // Get backend URL from environment variable
-const API = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001/api';
+const API = (process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001') + '/api';
 
 function App() {
   const [sessions, setSessions] = useState([]);
