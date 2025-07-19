@@ -199,7 +199,6 @@ function App() {
         timestamp: new Date().toLocaleTimeString()
       };
       setExecutionResults(prev => [...prev, errorResult]);
-      setActiveTab('results');
     }
   };
 
