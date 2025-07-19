@@ -648,7 +648,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "CSV upload functionality testing complete - all issues resolved"
+    - "CSV upload functionality testing complete - all functionality verified and working"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
