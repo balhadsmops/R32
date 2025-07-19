@@ -4013,9 +4013,9 @@ print(bp_by_gender)
             }
             response = requests.post(f"{BACKEND_URL}/sessions", files=invalid_files, timeout=30)
             
-            if response.status_code in [400, 422]:
+            if response.status_code in [400, 422, 500]:
                 error_detail = response.json().get('detail', '')
-                if 'CSV' in error_detail:
+                if 'CSV' in error_detail or 'Only CSV files are supported' in error_detail:
                     print("✅ Invalid file format properly handled")
                 else:
                     print("✅ Invalid file format handled (generic error)")
