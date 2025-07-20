@@ -909,7 +909,7 @@ function App() {
               </div>
             ) : (
               <div className={`text-center py-4 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                <p className="text-sm">Upload a dataset to start chatting</p>
+                <p className="text-sm">Start a new chat to begin your conversation</p>
               </div>
             )}
           </div>
