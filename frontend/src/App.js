@@ -668,7 +668,7 @@ function App() {
         </div>
         
         {/* Upload Section - Replaced with New Chat Button */}
-        <div className="px-6 py-6">
+        <div className="px-6 py-6 space-y-3">
           <button
             onClick={() => {
               // Create new session/chat functionality
@@ -682,6 +682,21 @@ function App() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             <span>New Chat</span>
+          </button>
+          
+          {/* File Upload Button */}
+          <button
+            onClick={() => document.getElementById('hidden-file-input').click()}
+            className={`w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-all border-2 border-dashed ${
+              darkMode 
+                ? 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-gray-500 hover:bg-gray-700' 
+                : 'border-gray-300 bg-gray-50 text-gray-700 hover:border-gray-400 hover:bg-gray-100'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <span>Upload CSV</span>
           </button>
           
           {/* Hidden file input for upload functionality */}
