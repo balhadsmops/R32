@@ -667,23 +667,8 @@ function App() {
           </div>
         </div>
         
-        {/* Upload Section - Replaced with New Chat Button */}
-        <div className="px-6 py-6 space-y-3">
-          <button
-            onClick={() => {
-              // Create new session/chat functionality
-              setCurrentSession(null);
-              setMessages([]);
-              setNewMessage('');
-            }}
-            className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span>New Chat</span>
-          </button>
-          
+        {/* Upload Section */}
+        <div className="px-6 py-6">
           {/* File Upload Button */}
           <button
             onClick={() => document.getElementById('hidden-file-input').click()}
