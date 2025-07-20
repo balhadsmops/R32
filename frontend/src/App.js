@@ -618,8 +618,8 @@ function App() {
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } ${darkMode ? 'bg-gray-800/90 border-gray-600/50' : 'bg-white/90 border-gray-300/50'} border-2 rounded-2xl shadow-xl backdrop-blur-sm`}>
         
-          {/* Sidebar Header */}
-          <div className={`flex items-center justify-between px-6 py-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+        {/* Sidebar Header */}
+        <div className={`flex items-center justify-between px-6 py-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
               <span className="text-white text-sm font-bold">AI</span>
