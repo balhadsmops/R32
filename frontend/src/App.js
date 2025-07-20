@@ -934,6 +934,7 @@ function App() {
       {/* Modals */}
       {showApiModal && <ApiKeyModal />}
       {showSettingsModal && <SettingsModal />}
+      </div>
     </div>
   );
 }
