@@ -774,8 +774,10 @@ function App() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main Content - Right Panel */}
+      <div className={`flex-1 flex flex-col min-w-0 ${
+        darkMode ? 'bg-gray-800/90 border-gray-600/50' : 'bg-white/90 border-gray-300/50'
+      } border-2 rounded-2xl shadow-xl backdrop-blur-sm overflow-hidden`}>
         {/* Top Header */}
         <div className={`flex items-center justify-between px-6 py-4 border-b ${
           darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
