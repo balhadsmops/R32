@@ -612,7 +612,7 @@ function App() {
 
   return (
     <div className={`min-h-screen transition-colors duration-300 p-8 ${darkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
-      <div className="flex h-screen gap-6">
+      <div className="flex h-[calc(100vh-4rem)] gap-6">
         {/* Modern Sidebar - Left Panel */}
         <div className={`flex-shrink-0 w-64 flex flex-col transition-all duration-300 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
