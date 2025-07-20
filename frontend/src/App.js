@@ -611,10 +611,10 @@ function App() {
   );
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 p-4 ${darkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
-      <div className="flex h-screen gap-4">
+    <div className={`min-h-screen transition-colors duration-300 p-8 ${darkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
+      <div className="flex h-screen gap-6">
         {/* Modern Sidebar - Left Panel */}
-        <div className={`flex-shrink-0 w-80 flex flex-col transition-all duration-300 ${
+        <div className={`flex-shrink-0 w-64 flex flex-col transition-all duration-300 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } ${darkMode ? 'bg-gray-800/90 border-gray-600/50' : 'bg-white/90 border-gray-300/50'} border-2 rounded-2xl shadow-xl backdrop-blur-sm`}>
         
