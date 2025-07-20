@@ -611,11 +611,12 @@ function App() {
   );
 
   return (
-    <div className={`min-h-screen flex transition-colors duration-300 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-      {/* Modern Sidebar */}
-      <div className={`flex-shrink-0 w-80 h-screen flex flex-col transition-all duration-300 ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      } ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r shadow-lg`}>
+    <div className={`min-h-screen transition-colors duration-300 p-4 ${darkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
+      <div className="flex h-screen gap-4">
+        {/* Modern Sidebar - Left Panel */}
+        <div className={`flex-shrink-0 w-80 flex flex-col transition-all duration-300 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } ${darkMode ? 'bg-gray-800/90 border-gray-600/50' : 'bg-white/90 border-gray-300/50'} border-2 rounded-2xl shadow-xl backdrop-blur-sm`}>
         
         {/* Sidebar Header */}
         <div className={`flex items-center justify-between px-6 py-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
