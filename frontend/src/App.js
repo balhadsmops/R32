@@ -669,45 +669,47 @@ function App() {
         
         {/* Upload Section */}
         <div className="px-6 py-6">
-          {/* File Upload Button */}
-          <button
-            onClick={() => document.getElementById('hidden-file-input').click()}
-            disabled={uploading}
-            className={`w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-all border-2 border-dashed ${
-              uploading 
-                ? 'border-gray-400 bg-gray-100 text-gray-500 cursor-not-allowed'
-                : darkMode 
-                  ? 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-gray-500 hover:bg-gray-700' 
-                  : 'border-gray-300 bg-gray-50 text-gray-700 hover:border-gray-400 hover:bg-gray-100'
-            }`}
-          >
-            {uploading ? (
-              <>
-                <div className="loading-dots">
-                  <div className="loading-dot"></div>
-                  <div className="loading-dot"></div>
-                  <div className="loading-dot"></div>
-                </div>
-                <span>Uploading...</span>
-              </>
-            ) : (
-              <>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                <span>Upload CSV</span>
-              </>
-            )}
-          </button>
-          
-          {/* Hidden file input for upload functionality */}
-          <input
-            type="file"
-            accept=".csv"
-            onChange={handleFileUpload}
-            className="hidden"
-            id="hidden-file-input"
-          />
+          {/* File Upload Input with Custom Styling */}
+          <div className="relative">
+            <label
+              htmlFor="file-upload-input"
+              className={`w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-all border-2 border-dashed cursor-pointer ${
+                uploading 
+                  ? 'border-gray-400 bg-gray-100 text-gray-500 cursor-not-allowed'
+                  : darkMode 
+                    ? 'border-gray-600 bg-gray-700/50 text-gray-300 hover:border-gray-500 hover:bg-gray-700' 
+                    : 'border-gray-300 bg-gray-50 text-gray-700 hover:border-gray-400 hover:bg-gray-100'
+              }`}
+            >
+              {uploading ? (
+                <>
+                  <div className="loading-dots">
+                    <div className="loading-dot"></div>
+                    <div className="loading-dot"></div>
+                    <div className="loading-dot"></div>
+                  </div>
+                  <span>Uploading...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <span>Upload CSV</span>
+                </>
+              )}
+            </label>
+            
+            {/* Visible file input with transparent overlay */}
+            <input
+              id="file-upload-input"
+              type="file"
+              accept=".csv"
+              onChange={handleFileUpload}
+              disabled={uploading}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+            />
+          </div>
         </div>
         
         {/* Sessions List */}
