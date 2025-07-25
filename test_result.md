@@ -651,8 +651,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "CSV upload functionality testing complete - all functionality verified and working"
-  stuck_tasks: []
+    - "CSV File Upload Interface - CRITICAL ISSUE: File dialog not opening due to browser security restrictions"
+  stuck_tasks:
+    - "CSV File Upload Interface - File dialog not opening when Upload CSV button is clicked"
   test_all: false
   test_priority: "high_first"
 
