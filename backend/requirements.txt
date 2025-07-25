@@ -65,3 +65,5 @@ httpcore>=1.0.0
 litellm
 aiohttp>=3.8.0
 PyYAML>=6.0
+multidict
+opentelemetry-api
