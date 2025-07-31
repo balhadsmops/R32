@@ -13,7 +13,7 @@ import time
 from typing import Dict, Any, Optional
 
 # Configuration
-BACKEND_URL = "https://9e1bbb15-b7e7-4266-b292-e1771a6e8bbb.preview.emergentagent.com/api"
+BACKEND_URL = "https://f8c55316-fa41-4390-807d-a1e34f7e0a2b.preview.emergentagent.com/api"
 TEST_API_KEY = "test_key_123"
 
 class JuliusAITester:
