@@ -622,7 +622,7 @@ function App() {
   // Settings Modal
   const SettingsModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-6 w-96 border ${darkMode ? 'border-gray-600' : 'border-gray-200'} shadow-2xl`}>
+      <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-6 w-[500px] border ${darkMode ? 'border-gray-600' : 'border-gray-200'} shadow-2xl max-h-[90vh] overflow-y-auto`}>
         <div className="flex items-center justify-between mb-6">
           <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Settings</h3>
           <button
@@ -653,6 +653,31 @@ function App() {
           </div>
         </div>
 
+        {/* Gemini Model Selection */}
+        <div className="mb-6">
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+            Gemini Model
+          </label>
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            className={`w-full px-3 py-2 rounded-lg border ${
+              darkMode 
+                ? 'bg-gray-700 border-gray-600 text-white' 
+                : 'bg-white border-gray-300 text-gray-900'
+            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+          >
+            {GEMINI_MODELS.map(model => (
+              <option key={model.id} value={model.id}>
+                {model.name}
+              </option>
+            ))}
+          </select>
+          <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            {GEMINI_MODELS.find(m => m.id === selectedModel)?.description}
+          </p>
+        </div>
+
         {/* API Key */}
         <div className="mb-6">
           <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
@@ -670,24 +695,64 @@ function App() {
                   : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
               } focus:outline-none focus:ring-2 focus:ring-blue-500`}
             />
-            <button
-              onClick={saveApiKey}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              Save
-            </button>
           </div>
           <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
             Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Google AI Studio</a>
           </p>
         </div>
 
-        <div className="flex justify-end">
+        {/* Connection Test */}
+        <div className="mb-6">
+          <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+            Test Connection
+          </label>
+          <button
+            onClick={testConnection}
+            disabled={!apiKey || isTestingConnection}
+            className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              !apiKey || isTestingConnection
+                ? 'bg-gray-400 cursor-not-allowed text-white'
+                : 'bg-green-500 hover:bg-green-600 text-white'
+            }`}
+          >
+            {isTestingConnection ? (
+              <div className="flex items-center justify-center space-x-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Testing Connection...</span>
+              </div>
+            ) : (
+              `Test Connection with ${GEMINI_MODELS.find(m => m.id === selectedModel)?.name || 'Selected Model'}`
+            )}
+          </button>
+          
+          {connectionStatus && (
+            <div className={`mt-2 p-3 rounded-lg text-sm ${
+              connectionStatus.success 
+                ? darkMode ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800'
+                : darkMode ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-800'
+            }`}>
+              {connectionStatus.message}
+              {connectionStatus.response_preview && (
+                <div className={`mt-2 text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  <strong>Response preview:</strong> {connectionStatus.response_preview}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end space-x-2">
           <button
             onClick={() => setShowSettingsModal(false)}
             className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors"
           >
-            Close
+            Cancel
+          </button>
+          <button
+            onClick={saveSettings}
+            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            Save Settings
           </button>
         </div>
       </div>
