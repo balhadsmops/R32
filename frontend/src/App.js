@@ -1640,6 +1640,36 @@ function App() {
               )}
             </div>
           </div>
+          
+          {/* Tabs */}
+          {currentSession && (
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setActiveTab('chat')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'chat'
+                    ? 'bg-blue-500 text-white'
+                    : darkMode
+                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                💬 Chat
+              </button>
+              <button
+                onClick={() => setActiveTab('data')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === 'data'
+                    ? 'bg-blue-500 text-white'
+                    : darkMode
+                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                📊 Data Preview
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Chat Area - Fixed Layout */}
