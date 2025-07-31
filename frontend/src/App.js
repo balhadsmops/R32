@@ -843,7 +843,7 @@ function App() {
               <>
                 {/* Show data preview if session has CSV data but no messages */}
                 {messages.length === 0 && currentSession.csv_preview && (
-                  <div className="flex items-center justify-center h-full">
+                  <div className="flex items-center justify-center min-h-full">
                     <div className={`max-w-2xl mx-auto p-8 rounded-2xl border-2 ${
                       darkMode 
                         ? 'bg-gray-800/50 border-gray-600/50 shadow-2xl shadow-gray-900/20' 
