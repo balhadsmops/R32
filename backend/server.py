@@ -2144,6 +2144,350 @@ async def save_analysis_result(session_id: str, result: AnalysisResult):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Data Cleaning and Preview Endpoints
+
+@api_router.post("/sessions/{session_id}/data-preview")
+async def get_data_preview(session_id: str, request: DataPreviewRequest):
+    """Get paginated and filtered data preview with sorting"""
+    try:
+        # Get session data
+        session = await db.chat_sessions.find_one({"id": session_id})
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        if not session.get('file_data'):
+            raise HTTPException(status_code=400, detail="No CSV data found in session")
+        
+        # Decode CSV data
+        csv_data = base64.b64decode(session['file_data']).decode('utf-8')
+        df = pd.read_csv(io.StringIO(csv_data))
+        
+        # Apply filters if provided
+        if request.filters:
+            for column, filter_value in request.filters.items():
+                if column in df.columns:
+                    if isinstance(filter_value, dict):
+                        # Range filter for numeric columns
+                        if 'min' in filter_value and pd.api.types.is_numeric_dtype(df[column]):
+                            df = df[df[column] >= filter_value['min']]
+                        if 'max' in filter_value and pd.api.types.is_numeric_dtype(df[column]):
+                            df = df[df[column] <= filter_value['max']]
+                    else:
+                        # Exact match or contains filter
+                        if pd.api.types.is_numeric_dtype(df[column]):
+                            df = df[df[column] == filter_value]
+                        else:
+                            df = df[df[column].str.contains(str(filter_value), case=False, na=False)]
+        
+        # Apply sorting
+        if request.sort_column and request.sort_column in df.columns:
+            ascending = request.sort_direction == "asc"
+            df = df.sort_values(by=request.sort_column, ascending=ascending)
+        
+        # Calculate pagination
+        total_rows = len(df)
+        start_idx = (request.page - 1) * request.page_size
+        end_idx = start_idx + request.page_size
+        
+        # Get paginated data
+        paginated_df = df.iloc[start_idx:end_idx]
+        
+        # Convert to records for JSON response
+        data_records = paginated_df.to_dict('records')
+        
+        # Get data quality information
+        quality_info = DataCleaningService.get_data_quality_info(df)
+        
+        return {
+            "data": data_records,
+            "total_rows": total_rows,
+            "current_page": request.page,
+            "total_pages": (total_rows + request.page_size - 1) // request.page_size,
+            "page_size": request.page_size,
+            "columns": df.columns.tolist(),
+            "data_types": df.dtypes.astype(str).to_dict(),
+            "quality_info": [q.dict() for q in quality_info]
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/sessions/{session_id}/data-quality")
+async def get_data_quality(session_id: str):
+    """Get comprehensive data quality information"""
+    try:
+        # Get session data
+        session = await db.chat_sessions.find_one({"id": session_id})
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        if not session.get('file_data'):
+            raise HTTPException(status_code=400, detail="No CSV data found in session")
+        
+        # Decode CSV data
+        csv_data = base64.b64decode(session['file_data']).decode('utf-8')
+        df = pd.read_csv(io.StringIO(csv_data))
+        
+        # Get comprehensive quality information
+        quality_info = DataCleaningService.get_data_quality_info(df)
+        
+        # Overall dataset statistics
+        dataset_stats = {
+            "total_rows": len(df),
+            "total_columns": len(df.columns),
+            "total_missing_values": int(df.isnull().sum().sum()),
+            "missing_percentage": float((df.isnull().sum().sum() / df.size) * 100),
+            "duplicate_rows": int(df.duplicated().sum()),
+            "memory_usage": float(df.memory_usage(deep=True).sum() / 1024 / 1024)  # MB
+        }
+        
+        return {
+            "dataset_stats": dataset_stats,
+            "column_quality": [q.dict() for q in quality_info]
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/sessions/{session_id}/handle-missing-data")
+async def handle_missing_data(session_id: str, request: MissingDataRequest):
+    """Handle missing data using various strategies"""
+    try:
+        # Get session data
+        session = await db.chat_sessions.find_one({"id": session_id})
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        if not session.get('file_data'):
+            raise HTTPException(status_code=400, detail="No CSV data found in session")
+        
+        # Decode CSV data
+        csv_data = base64.b64decode(session['file_data']).decode('utf-8')
+        df = pd.read_csv(io.StringIO(csv_data))
+        
+        # Apply missing data strategy
+        df_cleaned = DataCleaningService.apply_missing_data_strategy(
+            df, request.strategy, request.columns, request.fill_value
+        )
+        
+        # Prepare response
+        changes_summary = {
+            "original_missing_count": int(df.isnull().sum().sum()),
+            "cleaned_missing_count": int(df_cleaned.isnull().sum().sum()),
+            "rows_removed": len(df) - len(df_cleaned),
+            "strategy_applied": request.strategy,
+            "columns_affected": request.columns if request.columns else df.columns.tolist()
+        }
+        
+        # Convert cleaned data back to base64 for storage
+        csv_buffer = io.StringIO()
+        df_cleaned.to_csv(csv_buffer, index=False)
+        cleaned_data_b64 = base64.b64encode(csv_buffer.getvalue().encode('utf-8')).decode('utf-8')
+        
+        return {
+            "cleaned_data": cleaned_data_b64,
+            "changes_summary": changes_summary,
+            "preview": df_cleaned.head(10).to_dict('records')
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/sessions/{session_id}/detect-outliers")
+async def detect_outliers(session_id: str, request: OutlierDetectionRequest):
+    """Detect outliers using various methods"""
+    try:
+        # Get session data
+        session = await db.chat_sessions.find_one({"id": session_id})
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        if not session.get('file_data'):
+            raise HTTPException(status_code=400, detail="No CSV data found in session")
+        
+        # Decode CSV data
+        csv_data = base64.b64decode(session['file_data']).decode('utf-8')
+        df = pd.read_csv(io.StringIO(csv_data))
+        
+        # Detect outliers
+        outliers = DataCleaningService.detect_outliers(
+            df, request.method, request.columns, request.threshold, request.z_threshold
+        )
+        
+        # Prepare response with outlier information
+        outlier_summary = {}
+        for column, indices in outliers.items():
+            outlier_summary[column] = {
+                "count": len(indices),
+                "percentage": (len(indices) / len(df)) * 100,
+                "indices": indices[:50],  # Limit to first 50 for performance
+                "sample_values": df.loc[indices[:10], column].tolist() if indices else []
+            }
+        
+        return {
+            "method_used": request.method,
+            "outliers_by_column": outlier_summary,
+            "total_outlier_rows": len(set([idx for indices in outliers.values() for idx in indices]))
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/sessions/{session_id}/transform-data")
+async def transform_data(session_id: str, request: DataTransformationRequest):
+    """Apply data transformations"""
+    try:
+        # Get session data
+        session = await db.chat_sessions.find_one({"id": session_id})
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        if not session.get('file_data'):
+            raise HTTPException(status_code=400, detail="No CSV data found in session")
+        
+        # Decode CSV data
+        csv_data = base64.b64decode(session['file_data']).decode('utf-8')
+        df = pd.read_csv(io.StringIO(csv_data))
+        
+        # Apply transformation
+        df_transformed = DataCleaningService.apply_data_transformation(
+            df, request.transformation_type, request.columns, request.encoding_method
+        )
+        
+        # Prepare response
+        changes_summary = {
+            "transformation_type": request.transformation_type,
+            "columns_affected": request.columns if request.columns else df.columns.tolist(),
+            "original_shape": [len(df), len(df.columns)],
+            "transformed_shape": [len(df_transformed), len(df_transformed.columns)],
+            "new_columns": [col for col in df_transformed.columns if col not in df.columns]
+        }
+        
+        # Convert transformed data back to base64
+        csv_buffer = io.StringIO()
+        df_transformed.to_csv(csv_buffer, index=False)
+        transformed_data_b64 = base64.b64encode(csv_buffer.getvalue().encode('utf-8')).decode('utf-8')
+        
+        return {
+            "transformed_data": transformed_data_b64,
+            "changes_summary": changes_summary,
+            "preview": df_transformed.head(10).to_dict('records')
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/sessions/{session_id}/remove-duplicates")
+async def remove_duplicates(session_id: str, columns: List[str] = None, keep: str = "first"):
+    """Remove duplicate rows"""
+    try:
+        # Get session data
+        session = await db.chat_sessions.find_one({"id": session_id})
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        if not session.get('file_data'):
+            raise HTTPException(status_code=400, detail="No CSV data found in session")
+        
+        # Decode CSV data
+        csv_data = base64.b64decode(session['file_data']).decode('utf-8')
+        df = pd.read_csv(io.StringIO(csv_data))
+        
+        # Remove duplicates
+        original_count = len(df)
+        df_deduplicated = DataCleaningService.remove_duplicates(df, columns, keep)
+        duplicates_removed = original_count - len(df_deduplicated)
+        
+        # Prepare response
+        changes_summary = {
+            "original_rows": original_count,
+            "deduplicated_rows": len(df_deduplicated),
+            "duplicates_removed": duplicates_removed,
+            "columns_checked": columns if columns else "all",
+            "keep_strategy": keep
+        }
+        
+        # Convert deduplicated data back to base64
+        csv_buffer = io.StringIO()
+        df_deduplicated.to_csv(csv_buffer, index=False)
+        deduplicated_data_b64 = base64.b64encode(csv_buffer.getvalue().encode('utf-8')).decode('utf-8')
+        
+        return {
+            "deduplicated_data": deduplicated_data_b64,
+            "changes_summary": changes_summary,
+            "preview": df_deduplicated.head(10).to_dict('records')
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/sessions/{session_id}/save-cleaned-data")
+async def save_cleaned_data(session_id: str, cleaned_data_b64: str, filename: str = None):
+    """Save cleaned data as a new session or update current session"""
+    try:
+        # Validate cleaned data
+        try:
+            csv_data = base64.b64decode(cleaned_data_b64).decode('utf-8')
+            df = pd.read_csv(io.StringIO(csv_data))
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid cleaned data format")
+        
+        if filename:
+            # Create new session with cleaned data
+            new_session_id = str(uuid.uuid4())
+            title = f"Cleaned - {filename}"
+            
+            # Generate basic CSV preview
+            csv_preview = {
+                "shape": [len(df), len(df.columns)],
+                "columns": df.columns.tolist(),
+                "dtypes": df.dtypes.astype(str).to_dict(),
+                "null_counts": df.isnull().sum().to_dict(),
+                "sample_data": df.head(5).to_dict('records')
+            }
+            
+            session = ChatSession(
+                id=new_session_id,
+                title=title,
+                file_name=filename,
+                file_data=cleaned_data_b64,
+                csv_preview=csv_preview
+            )
+            
+            await db.chat_sessions.insert_one(session.dict())
+            
+            return {
+                "message": "Cleaned data saved as new session",
+                "new_session_id": new_session_id,
+                "filename": filename
+            }
+        else:
+            # Update current session with cleaned data
+            # Generate updated CSV preview
+            csv_preview = {
+                "shape": [len(df), len(df.columns)],
+                "columns": df.columns.tolist(),
+                "dtypes": df.dtypes.astype(str).to_dict(),
+                "null_counts": df.isnull().sum().to_dict(),
+                "sample_data": df.head(5).to_dict('records')
+            }
+            
+            await db.chat_sessions.update_one(
+                {"id": session_id},
+                {"$set": {
+                    "file_data": cleaned_data_b64,
+                    "csv_preview": csv_preview
+                }}
+            )
+            
+            return {
+                "message": "Session updated with cleaned data",
+                "session_id": session_id
+            }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Include the router in the main app
 app.include_router(api_router)
 
