@@ -285,6 +285,12 @@ function App() {
     setShowApiModal(false);
   };
 
+  const saveSettings = () => {
+    localStorage.setItem('gemini_api_key', apiKey);
+    localStorage.setItem('gemini_model', selectedModel);
+    setShowSettingsModal(false);
+  };
+
   // Enhanced Message Parser and Renderer
   const parseAndRenderAIResponse = (content) => {
     const sections = [];
