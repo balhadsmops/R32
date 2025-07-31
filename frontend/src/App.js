@@ -5,6 +5,14 @@ import './App.css';
 // Get backend URL from environment variable
 const API = (process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001') + '/api';
 
+// Gemini models available
+const GEMINI_MODELS = [
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (Recommended)', description: 'Fast and efficient for most tasks' },
+  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', description: 'Most capable model for complex tasks' },
+  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Balanced performance and speed' },
+  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: 'High capability for complex reasoning' }
+];
+
 function App() {
   const [sessions, setSessions] = useState([]);
   const [currentSession, setCurrentSession] = useState(null);
