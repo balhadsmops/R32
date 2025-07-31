@@ -4428,7 +4428,7 @@ print(bp_by_gender)
     def run_focused_tests(self):
         """Run focused tests based on review request requirements"""
         print("=" * 80)
-        print("BACKEND API TESTING - FOCUSED ON CHAT FUNCTIONALITY ISSUES")
+        print("BACKEND API TESTING - FOCUSED ON NEW /test-connection ENDPOINT")
         print("=" * 80)
         print(f"Backend URL: {BACKEND_URL}")
         print(f"Using API Key: {TEST_API_KEY[:20]}...")
@@ -4437,9 +4437,9 @@ print(bp_by_gender)
         # Test sequence based on review request
         tests = [
             ("API Health Check", self.test_api_health_check),
-            ("Sessions API", self.test_session_management),
-            ("Chat Functionality with Sample Data", self.test_chat_functionality_with_sample_data),
+            ("Test Connection Endpoint", self.test_connection_endpoint),
             ("CSV Upload with Sample Data", self.test_csv_upload_api_fast),
+            ("Sessions API", self.test_session_management),
             ("Gemini LLM Integration", self.test_gemini_llm_integration),
         ]
         
