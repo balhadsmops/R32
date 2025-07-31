@@ -928,6 +928,52 @@ class DataQualityResponse(BaseModel):
     outliers_count: int
     statistics: Optional[Dict[str, Any]] = None
 
+# SPSS-like Variable Metadata Models
+class VariableDefinition(BaseModel):
+    name: str
+    type: str  # "Numeric", "String"
+    width: int = 8  # Display width
+    decimals: int = 2  # Decimal places for numeric
+    label: str = ""  # Descriptive label
+    values: Dict[str, str] = {}  # Value labels (e.g., {"1": "Yes", "2": "No"})
+    missing: List[str] = []  # Missing value definitions
+    columns: int = 8  # Display columns
+    align: str = "Right"  # "Left", "Right", "Center"
+    measure: str = "Scale"  # "Scale", "Ordinal", "Nominal"
+
+class VariableMetadataRequest(BaseModel):
+    session_id: str
+    variables: List[VariableDefinition]
+
+class VariableMetadataResponse(BaseModel):
+    session_id: str
+    variables: List[VariableDefinition]
+
+class MissingSuggestion(BaseModel):
+    column_name: str  
+    missing_count: int
+    missing_percentage: float
+    suggested_label: str
+    rationale: str
+
+class MissingSuggestionsRequest(BaseModel):
+    session_id: str
+    threshold_percentage: float = 10.0  # Suggest for columns with >10% missing
+
+class MissingSuggestionsResponse(BaseModel):
+    session_id: str
+    suggestions: List[MissingSuggestion]
+    
+class ApplySuggestionsRequest(BaseModel):
+    session_id: str
+    accepted_suggestions: List[Dict[str, str]]  # {"column_name": "label_to_apply"}
+
+class CellEditRequest(BaseModel):
+    session_id: str
+    row_index: int
+    column_name: str
+    new_value: Any
+
 class EnhancedPythonExecutionRequest(BaseModel):
     session_id: str
     code: str
