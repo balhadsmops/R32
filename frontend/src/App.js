@@ -108,6 +108,74 @@ function App() {
     }
   };
 
+  const testConnection = async () => {
+    if (!apiKey.trim()) {
+      setConnectionStatus({ success: false, message: 'Please enter an API key first' });
+      return;
+    }
+
+    setIsTestingConnection(true);
+    setConnectionStatus(null);
+
+    try {
+      // Create a test session with dummy data for connection testing
+      const testData = {
+        message: 'Test connection',
+        gemini_api_key: apiKey.trim(),
+        model: selectedModel
+      };
+
+      // Use a simple endpoint that doesn't require a session
+      const response = await axios.post(`${API}/test-connection`, testData, {
+        timeout: 10000, // 10 second timeout
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.status === 200) {
+        setConnectionStatus({ 
+          success: true, 
+          message: `✅ Connection successful! Using ${selectedModel}`,
+          model: selectedModel
+        });
+      }
+    } catch (error) {
+      console.error('Connection test failed:', error);
+      
+      let errorMessage = '❌ Connection failed. ';
+      
+      if (error.response) {
+        if (error.response.status === 400) {
+          errorMessage += 'Invalid API key or request format.';
+        } else if (error.response.status === 429) {
+          errorMessage += 'Rate limit exceeded. Try again later.';
+        } else if (error.response.status === 401) {
+          errorMessage += 'Invalid or expired API key.';
+        } else {
+          errorMessage += `Server error (${error.response.status}).`;
+        }
+      } else if (error.code === 'ECONNABORTED') {
+        errorMessage += 'Request timeout. Please check your internet connection.';
+      } else {
+        errorMessage += 'Network error. Please check your connection.';
+      }
+
+      setConnectionStatus({ 
+        success: false, 
+        message: errorMessage
+      });
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
+
+  const saveApiKey = () => {
+    localStorage.setItem('gemini_api_key', apiKey);
+    localStorage.setItem('gemini_model', selectedModel);
+    setConnectionStatus(null); // Clear any previous connection status
+  };
+
   const handleFileUpload = async (event) => {
     const selectedFile = event.target.files[0];
     if (!selectedFile) return;
