@@ -619,9 +619,9 @@ function App() {
     <div className={`min-h-screen transition-colors duration-300 p-4 ${darkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
       <div className="flex h-[calc(100vh-2rem)] gap-4">
         {/* Modern Sidebar - Left Panel */}
-        <div className={`flex-shrink-0 w-64 flex flex-col transition-all duration-300 ${
+        <div className={`flex-shrink-0 w-72 flex flex-col transition-all duration-300 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } ${darkMode ? 'bg-gray-800/90 border-gray-600/50' : 'bg-white/90 border-gray-300/50'} border-2 rounded-2xl shadow-xl backdrop-blur-sm`}>
+        } ${darkMode ? 'bg-gray-800/90 border-gray-600/50' : 'bg-white/90 border-gray-300/50'} border-2 rounded-2xl shadow-xl backdrop-blur-sm -ml-2`} style={{ height: 'calc(100vh - 1rem)' }}>
         
         {/* Sidebar Header */}
         <div className={`flex items-center justify-between px-6 py-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
