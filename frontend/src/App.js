@@ -145,9 +145,14 @@ function App() {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(`${API}/sessions/${currentSession.id}/chat`, {
-        message: newMessage,
-        api_key: apiKey
+      const formData = new FormData();
+      formData.append('message', newMessage);
+      formData.append('gemini_api_key', apiKey);
+
+      const response = await axios.post(`${API}/sessions/${currentSession.id}/chat`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       const assistantMessage = { role: 'assistant', content: response.data.response };
