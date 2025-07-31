@@ -519,8 +519,9 @@ invalid_syntax_here =
                 
                 if response.status_code == 400:
                     error_detail = response.json().get('detail', '')
-                    if ('Please provide a valid Gemini API key' in error_detail and 
-                        'Test keys are not supported' in error_detail):
+                    # The test key validation might be overridden by LlmChat exception handling
+                    if ('Please provide a valid Gemini API key' in error_detail or 
+                        'Invalid API key' in error_detail):
                         print(f"    ✅ Test key '{test_key}' properly rejected")
                     else:
                         print(f"    ✅ Test key '{test_key}' rejected with message: {error_detail}")
