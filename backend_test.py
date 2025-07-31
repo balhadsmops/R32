@@ -4084,6 +4084,275 @@ print(bp_by_gender)
         
         return self.test_results
 
+    def test_chat_functionality_with_sample_data(self) -> bool:
+        """Test chat functionality specifically with sample medical data to identify user-reported errors"""
+        print("Testing Chat Functionality with Sample Medical Data...")
+        
+        try:
+            # First, upload the sample medical data
+            print("  Step 1: Uploading sample medical data...")
+            
+            # Read the sample medical data file
+            with open('/app/examples/sample_medical_data.csv', 'r') as f:
+                csv_content = f.read()
+            
+            files = {
+                'file': ('sample_medical_data.csv', csv_content, 'text/csv')
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/sessions", files=files, timeout=30)
+            
+            if response.status_code != 200:
+                print(f"❌ Failed to upload sample data: {response.status_code} - {response.text}")
+                return False
+            
+            session_data = response.json()
+            test_session_id = session_data.get('id')
+            
+            if not test_session_id:
+                print("❌ No session ID returned from upload")
+                return False
+            
+            print(f"✅ Sample data uploaded successfully (Session: {test_session_id})")
+            
+            # Step 2: Test basic chat functionality with the configured API key
+            print("  Step 2: Testing chat with configured Gemini API key...")
+            
+            test_questions = [
+                {
+                    'question': 'What is the average age of patients in this dataset?',
+                    'description': 'Basic descriptive statistics query'
+                },
+                {
+                    'question': 'How many patients have hypertension?',
+                    'description': 'Medical condition count query'
+                },
+                {
+                    'question': 'Show me the distribution of blood pressure values',
+                    'description': 'Data distribution query'
+                },
+                {
+                    'question': 'What are the most common treatments in this dataset?',
+                    'description': 'Treatment analysis query'
+                }
+            ]
+            
+            chat_results = []
+            
+            for i, test_case in enumerate(test_questions, 1):
+                print(f"    Testing question {i}: {test_case['description']}")
+                
+                chat_data = {
+                    'message': test_case['question'],
+                    'gemini_api_key': TEST_API_KEY
+                }
+                
+                try:
+                    chat_response = requests.post(
+                        f"{BACKEND_URL}/sessions/{test_session_id}/chat", 
+                        data=chat_data,
+                        timeout=30
+                    )
+                    
+                    print(f"      Status: {chat_response.status_code}")
+                    
+                    if chat_response.status_code == 200:
+                        response_data = chat_response.json()
+                        
+                        if 'response' in response_data and response_data['response']:
+                            response_text = response_data['response']
+                            print(f"      ✅ Received response ({len(response_text)} characters)")
+                            
+                            # Check for common error patterns in the response
+                            if any(error_term in response_text.lower() for error_term in [
+                                'error', 'failed', 'exception', 'traceback', 'internal server error'
+                            ]):
+                                print(f"      ⚠️ Response contains error indicators")
+                                print(f"      Response preview: {response_text[:200]}...")
+                                chat_results.append('error_in_response')
+                            else:
+                                print(f"      ✅ Clean response received")
+                                chat_results.append('success')
+                        else:
+                            print(f"      ❌ Empty response received")
+                            chat_results.append('empty_response')
+                    
+                    elif chat_response.status_code == 400:
+                        error_detail = chat_response.json().get('detail', 'No detail provided')
+                        print(f"      ❌ Bad Request (400): {error_detail}")
+                        chat_results.append('bad_request')
+                    
+                    elif chat_response.status_code == 429:
+                        error_detail = chat_response.json().get('detail', 'No detail provided')
+                        print(f"      ⚠️ Rate Limited (429): {error_detail}")
+                        chat_results.append('rate_limited')
+                    
+                    elif chat_response.status_code == 500:
+                        error_detail = chat_response.json().get('detail', 'No detail provided')
+                        print(f"      ❌ Internal Server Error (500): {error_detail}")
+                        chat_results.append('server_error')
+                    
+                    else:
+                        print(f"      ❌ Unexpected status {chat_response.status_code}: {chat_response.text}")
+                        chat_results.append('unexpected_error')
+                
+                except requests.exceptions.Timeout:
+                    print(f"      ❌ Request timeout after 30 seconds")
+                    chat_results.append('timeout')
+                
+                except requests.exceptions.RequestException as e:
+                    print(f"      ❌ Request failed: {str(e)}")
+                    chat_results.append('request_failed')
+                
+                # Brief pause between requests
+                time.sleep(1)
+            
+            # Step 3: Analyze results and provide detailed error analysis
+            print("  Step 3: Analyzing chat functionality results...")
+            
+            success_count = chat_results.count('success')
+            error_count = len(chat_results) - success_count
+            
+            print(f"    Results Summary:")
+            print(f"    - Successful responses: {success_count}/{len(test_questions)}")
+            print(f"    - Failed responses: {error_count}/{len(test_questions)}")
+            
+            # Detailed error breakdown
+            error_types = {}
+            for result in chat_results:
+                if result != 'success':
+                    error_types[result] = error_types.get(result, 0) + 1
+            
+            if error_types:
+                print(f"    Error breakdown:")
+                for error_type, count in error_types.items():
+                    print(f"    - {error_type}: {count}")
+            
+            # Step 4: Test message storage
+            print("  Step 4: Verifying message storage...")
+            
+            messages_response = requests.get(f"{BACKEND_URL}/sessions/{test_session_id}/messages")
+            
+            if messages_response.status_code == 200:
+                messages = messages_response.json()
+                print(f"    ✅ Retrieved {len(messages)} messages from session")
+                
+                # Check for user and assistant messages
+                user_messages = [msg for msg in messages if msg.get('role') == 'user']
+                assistant_messages = [msg for msg in messages if msg.get('role') == 'assistant']
+                
+                print(f"    - User messages: {len(user_messages)}")
+                print(f"    - Assistant messages: {len(assistant_messages)}")
+                
+                if len(user_messages) > 0 and len(assistant_messages) > 0:
+                    print("    ✅ Message storage working correctly")
+                else:
+                    print("    ❌ Message storage issue - missing user or assistant messages")
+            else:
+                print(f"    ❌ Failed to retrieve messages: {messages_response.status_code}")
+            
+            # Final assessment
+            if success_count >= len(test_questions) * 0.75:  # 75% success rate
+                print("✅ Chat functionality working well with sample medical data")
+                return True
+            elif success_count > 0:
+                print("⚠️ Chat functionality partially working - some issues detected")
+                return True
+            else:
+                print("❌ Chat functionality not working - all queries failed")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Chat functionality test failed with error: {str(e)}")
+            return False
+
+    def test_api_health_check(self) -> bool:
+        """Test basic backend connectivity and health"""
+        print("Testing API Health Check...")
+        
+        try:
+            # Test root endpoint
+            response = requests.get(f"{BACKEND_URL}/", timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'message' in data:
+                    print("✅ Backend API is responding correctly")
+                    return True
+                else:
+                    print("❌ Backend API response format unexpected")
+                    return False
+            else:
+                print(f"❌ Backend API health check failed: {response.status_code}")
+                return False
+                
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Backend API not accessible: {str(e)}")
+            return False
+
+    def run_focused_tests(self):
+        """Run focused tests based on review request requirements"""
+        print("=" * 80)
+        print("BACKEND API TESTING - FOCUSED ON CHAT FUNCTIONALITY ISSUES")
+        print("=" * 80)
+        print(f"Backend URL: {BACKEND_URL}")
+        print(f"Using API Key: {TEST_API_KEY[:20]}...")
+        print("=" * 80)
+        
+        # Test sequence based on review request
+        tests = [
+            ("API Health Check", self.test_api_health_check),
+            ("Sessions API", self.test_session_management),
+            ("Chat Functionality with Sample Data", self.test_chat_functionality_with_sample_data),
+            ("CSV Upload with Sample Data", self.test_csv_upload_api_fast),
+            ("Gemini LLM Integration", self.test_gemini_llm_integration),
+        ]
+        
+        results = {}
+        
+        for test_name, test_method in tests:
+            print(f"\n{'='*60}")
+            print(f"RUNNING: {test_name}")
+            print(f"{'='*60}")
+            
+            try:
+                result = test_method()
+                results[test_name] = result
+                
+                if result:
+                    print(f"✅ {test_name}: PASSED")
+                else:
+                    print(f"❌ {test_name}: FAILED")
+                    
+            except Exception as e:
+                print(f"❌ {test_name}: EXCEPTION - {str(e)}")
+                results[test_name] = False
+            
+            print(f"{'='*60}")
+        
+        # Summary
+        print(f"\n{'='*80}")
+        print("TESTING SUMMARY")
+        print(f"{'='*80}")
+        
+        passed = sum(1 for result in results.values() if result)
+        total = len(results)
+        
+        for test_name, result in results.items():
+            status = "✅ PASSED" if result else "❌ FAILED"
+            print(f"{test_name:<40} {status}")
+        
+        print(f"\nOverall: {passed}/{total} tests passed ({passed/total*100:.1f}%)")
+        
+        if passed == total:
+            print("🎉 All tests passed! Backend is working correctly.")
+        elif passed >= total * 0.75:
+            print("⚠️ Most tests passed. Some minor issues detected.")
+        else:
+            print("🚨 Multiple test failures. Backend needs attention.")
+        
+        return results
+
     def print_csv_upload_summary(self):
         """Print summary of CSV upload focused tests"""
         print("\n" + "=" * 60)
