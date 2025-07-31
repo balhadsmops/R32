@@ -1672,177 +1672,190 @@ function App() {
           )}
         </div>
 
-        {/* Chat Area - Fixed Layout */}
+        {/* Content Area - Tabbed Layout */}
         <div className="flex-1 flex flex-col min-h-0">
-          {/* Messages Area - Properly contained with scroll */}
-          <div className={`flex-1 overflow-y-auto p-6 space-y-4 ${
-            darkMode ? 'bg-gray-900' : 'bg-gray-50'
-          }`} style={{ maxHeight: '100%' }}>
-            {currentSession ? (
-              <>
-                {/* Show data preview if session has CSV data but no messages */}
-                {messages.length === 0 && currentSession.csv_preview && (
-                  <div className="flex items-center justify-center min-h-full">
-                    <div className={`max-w-2xl mx-auto p-8 rounded-2xl border-2 ${
+          {/* Show different content based on active tab */}
+          {activeTab === 'chat' && (
+            <>
+              {/* Messages Area - Properly contained with scroll */}
+              <div className={`flex-1 overflow-y-auto p-6 space-y-4 ${
+                darkMode ? 'bg-gray-900' : 'bg-gray-50'
+              }`} style={{ maxHeight: '100%' }}>
+                {currentSession ? (
+                  <>
+                    {/* Show data preview if session has CSV data but no messages */}
+                    {messages.length === 0 && currentSession.csv_preview && (
+                      <div className="flex items-center justify-center min-h-full">
+                        <div className={`max-w-2xl mx-auto p-8 rounded-2xl border-2 ${
+                          darkMode 
+                            ? 'bg-gray-800/50 border-gray-600/50 shadow-2xl shadow-gray-900/20' 
+                            : 'bg-white/80 border-gray-200/80 shadow-2xl shadow-gray-500/10'
+                        } backdrop-blur-sm`}>
+                          <div className="text-center mb-6">
+                            <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-lg ${
+                              darkMode 
+                                ? 'bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-blue-500/30' 
+                                : 'bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200/50'
+                            }`}>
+                              <svg className={`w-8 h-8 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </div>
+                            <h3 className={`text-xl font-semibold mb-2 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
+                              Dataset Loaded: {currentSession.title || currentSession.filename}
+                            </h3>
+                            <div className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'} space-y-2`}>
+                              <p><span className="font-medium">Dimensions:</span> {currentSession.csv_preview.shape[0]} rows × {currentSession.csv_preview.shape[1]} columns</p>
+                              <p><span className="font-medium">Columns:</span> {currentSession.csv_preview.columns.slice(0, 3).join(', ')}{currentSession.csv_preview.columns.length > 3 ? `... (+${currentSession.csv_preview.columns.length - 3} more)` : ''}</p>
+                            </div>
+                          </div>
+                          
+                          <div className={`p-4 rounded-xl mb-6 ${darkMode ? 'bg-gray-700/30' : 'bg-gray-100/50'}`}>
+                            <h4 className={`font-medium mb-3 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>Quick Stats</h4>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className={`block ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Data Quality</span>
+                                <span className={`font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                                  {Math.round((1 - Object.values(currentSession.csv_preview.null_counts || {}).reduce((a, b) => a + b, 0) / (currentSession.csv_preview.shape[0] * currentSession.csv_preview.shape[1])) * 100)}% Complete
+                                </span>
+                              </div>
+                              <div>
+                                <span className={`block ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>File Size</span>
+                                <span className={`font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                                  {currentSession.csv_preview.shape[0] * currentSession.csv_preview.shape[1]} cells
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} text-center`}>
+                            Start chatting below to analyze your data with AI assistance
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Show messages if any exist */}
+                    {messages.map((message, index) => (
+                      <MessageRenderer key={index} message={message} />
+                    ))}
+                    {isLoading && <LoadingMessage />}
+                    <div ref={messagesEndRef} />
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <div className={`max-w-md mx-auto p-8 rounded-2xl border-2 ${
                       darkMode 
                         ? 'bg-gray-800/50 border-gray-600/50 shadow-2xl shadow-gray-900/20' 
                         : 'bg-white/80 border-gray-200/80 shadow-2xl shadow-gray-500/10'
                     } backdrop-blur-sm`}>
-                      <div className="text-center mb-6">
-                        <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-lg ${
+                      <div className="text-center">
+                        <div className={`w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center shadow-lg ${
                           darkMode 
-                            ? 'bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-blue-500/30' 
-                            : 'bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200/50'
+                            ? 'bg-gradient-to-br from-green-500/20 to-blue-600/20 border border-green-500/30' 
+                            : 'bg-gradient-to-br from-green-50 to-blue-50 border border-green-200/50'
                         }`}>
-                          <svg className={`w-8 h-8 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          <svg className={`w-8 h-8 ${darkMode ? 'text-green-400' : 'text-green-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                           </svg>
                         </div>
-                        <h3 className={`text-xl font-semibold mb-2 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
-                          Dataset Loaded: {currentSession.title || currentSession.filename}
+                        <h3 className={`text-xl font-semibold mb-3 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
+                          Start New Conversation
                         </h3>
-                        <div className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'} space-y-2`}>
-                          <p><span className="font-medium">Dimensions:</span> {currentSession.csv_preview.shape[0]} rows × {currentSession.csv_preview.shape[1]} columns</p>
-                          <p><span className="font-medium">Columns:</span> {currentSession.csv_preview.columns.slice(0, 3).join(', ')}{currentSession.csv_preview.columns.length > 3 ? `... (+${currentSession.csv_preview.columns.length - 3} more)` : ''}</p>
-                        </div>
+                        <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'} leading-relaxed mb-6`}>
+                          Begin a new chat session with the AI assistant. 
+                          Ask questions, get insights, and explore your ideas.
+                        </p>
+                        <button
+                          onClick={() => {
+                            // Create new chat functionality
+                            setCurrentSession({ id: Date.now(), title: 'New Chat', created_at: new Date().toISOString() });
+                            setMessages([]);
+                            setNewMessage('');
+                          }}
+                          className={`w-full inline-flex items-center justify-center px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                            darkMode
+                              ? 'bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl'
+                              : 'bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl'
+                          } hover:scale-[1.02] active:scale-[0.98]`}
+                        >
+                          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                          New Chat
+                        </button>
                       </div>
-                      
-                      <div className={`p-4 rounded-xl mb-6 ${darkMode ? 'bg-gray-700/30' : 'bg-gray-100/50'}`}>
-                        <h4 className={`font-medium mb-3 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>Quick Stats</h4>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className={`block ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Data Quality</span>
-                            <span className={`font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                              {Math.round((1 - Object.values(currentSession.csv_preview.null_counts || {}).reduce((a, b) => a + b, 0) / (currentSession.csv_preview.shape[0] * currentSession.csv_preview.shape[1])) * 100)}% Complete
-                            </span>
-                          </div>
-                          <div>
-                            <span className={`block ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>File Size</span>
-                            <span className={`font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                              {currentSession.csv_preview.shape[0] * currentSession.csv_preview.shape[1]} cells
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} text-center`}>
-                        Start chatting below to analyze your data with AI assistance
-                      </p>
                     </div>
                   </div>
                 )}
-                
-                {/* Show messages if any exist */}
-                {messages.map((message, index) => (
-                  <MessageRenderer key={index} message={message} />
-                ))}
-                {isLoading && <LoadingMessage />}
-                <div ref={messagesEndRef} />
-              </>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className={`max-w-md mx-auto p-8 rounded-2xl border-2 ${
-                  darkMode 
-                    ? 'bg-gray-800/50 border-gray-600/50 shadow-2xl shadow-gray-900/20' 
-                    : 'bg-white/80 border-gray-200/80 shadow-2xl shadow-gray-500/10'
-                } backdrop-blur-sm`}>
-                  <div className="text-center">
-                    <div className={`w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center shadow-lg ${
-                      darkMode 
-                        ? 'bg-gradient-to-br from-green-500/20 to-blue-600/20 border border-green-500/30' 
-                        : 'bg-gradient-to-br from-green-50 to-blue-50 border border-green-200/50'
-                    }`}>
-                      <svg className={`w-8 h-8 ${darkMode ? 'text-green-400' : 'text-green-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                    </div>
-                    <h3 className={`text-xl font-semibold mb-3 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
-                      Start New Conversation
-                    </h3>
-                    <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'} leading-relaxed mb-6`}>
-                      Begin a new chat session with the AI assistant. 
-                      Ask questions, get insights, and explore your ideas.
-                    </p>
+              </div>
+
+              {/* Fixed Input Area - Always Visible for Chat */}
+              <div className={`flex-shrink-0 border-t p-4 ${
+                darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+              }`}>
+                {currentSession ? (
+                  <div className="flex space-x-3">
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                      placeholder="Ask anything about your data..."
+                      className={`flex-1 px-4 py-3 rounded-lg border transition-all ${
+                        darkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
+                      } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
+                      disabled={isLoading}
+                    />
                     <button
-                      onClick={() => {
-                        // Create new chat functionality
-                        setCurrentSession({ id: Date.now(), title: 'New Chat', created_at: new Date().toISOString() });
-                        setMessages([]);
-                        setNewMessage('');
-                      }}
-                      className={`w-full inline-flex items-center justify-center px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
-                        darkMode
-                          ? 'bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl'
-                          : 'bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl'
-                      } hover:scale-[1.02] active:scale-[0.98]`}
+                      onClick={handleSendMessage}
+                      disabled={!newMessage.trim() || isLoading}
+                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
                     >
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      {isLoading ? (
+                        <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleSuggestAnalysis}
+                      disabled={isLoading}
+                      className={`px-4 py-3 rounded-lg font-medium transition-all ${
+                        darkMode 
+                          ? 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600' 
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      title="Get Analysis Suggestions"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                       </svg>
-                      New Chat
                     </button>
                   </div>
-                </div>
+                ) : (
+                  <div className={`text-center py-4 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <p className="text-sm">Start a new chat to begin your conversation</p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
 
-          {/* Fixed Input Area - Always Visible */}
-          <div className={`flex-shrink-0 border-t p-4 ${
-            darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-          }`}>
-            {currentSession ? (
-              <div className="flex space-x-3">
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  placeholder="Ask anything about your data..."
-                  className={`flex-1 px-4 py-3 rounded-lg border transition-all ${
-                    darkMode 
-                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
-                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
-                  } focus:outline-none focus:ring-2 focus:ring-blue-500/20`}
-                  disabled={isLoading}
-                />
-                <button
-                  onClick={handleSendMessage}
-                  disabled={!newMessage.trim() || isLoading}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg"
-                >
-                  {isLoading ? (
-                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                  )}
-                </button>
-                <button
-                  onClick={handleSuggestAnalysis}
-                  disabled={isLoading}
-                  className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                    darkMode 
-                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600 border border-gray-600' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  title="Get Analysis Suggestions"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                </button>
-              </div>
-            ) : (
-              <div className={`text-center py-4 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                <p className="text-sm">Start a new chat to begin your conversation</p>
-              </div>
-            )}
-          </div>
+          {/* Data Preview Tab */}
+          {activeTab === 'data' && (
+            <DataPreviewTable 
+              sessionId={currentSession?.id} 
+              apiKey={apiKey} 
+            />
+          )}
         </div>
       </div>
 
