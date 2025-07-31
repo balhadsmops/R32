@@ -884,6 +884,50 @@ class EnhancedPythonExecutionRequest(BaseModel):
     analysis_title: Optional[str] = "Statistical Analysis"
     auto_section: bool = True  # Whether to auto-detect analysis sections
 
+# Data Cleaning Models
+class DataPreviewRequest(BaseModel):
+    session_id: str
+    page: int = 1
+    page_size: int = 100
+    sort_column: Optional[str] = None
+    sort_direction: str = "asc"  # "asc" or "desc"
+    filters: Optional[Dict[str, Any]] = None
+
+class DataCleaningRequest(BaseModel):
+    session_id: str
+    cleaning_operations: List[Dict[str, Any]]  # List of cleaning operations to perform
+    save_as_new: bool = True
+    new_filename: Optional[str] = None
+
+class MissingDataRequest(BaseModel):
+    session_id: str
+    strategy: str  # "drop", "fill_mean", "fill_median", "fill_mode", "fill_value", "forward_fill", "backward_fill"
+    columns: Optional[List[str]] = None  # If None, apply to all columns
+    fill_value: Optional[Any] = None  # Used when strategy is "fill_value"
+
+class OutlierDetectionRequest(BaseModel):
+    session_id: str
+    method: str  # "iqr", "zscore", "isolation_forest"
+    columns: Optional[List[str]] = None
+    threshold: float = 1.5  # For IQR method
+    z_threshold: float = 3.0  # For Z-score method
+
+class DataTransformationRequest(BaseModel):
+    session_id: str
+    transformation_type: str  # "normalize", "standardize", "encode_categorical", "log_transform"
+    columns: Optional[List[str]] = None
+    encoding_method: str = "onehot"  # "onehot", "label", "binary"
+
+class DataQualityResponse(BaseModel):
+    column_name: str
+    data_type: str
+    missing_count: int
+    missing_percentage: float
+    unique_count: int
+    duplicates: int
+    outliers_count: int
+    statistics: Optional[Dict[str, Any]] = None
+
 class EnhancedPythonExecutionRequest(BaseModel):
     session_id: str
     code: str
