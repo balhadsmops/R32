@@ -8,7 +8,7 @@ import json
 import pandas as pd
 
 # Configuration
-BACKEND_URL = "https://f8c55316-fa41-4390-807d-a1e34f7e0a2b.preview.emergentagent.com/api"
+BACKEND_URL = "https://de3846cd-edba-4b60-9fef-151ca4ed7fd8.preview.emergentagent.com/api"
 TEST_API_KEY = "test_key_123"
 
 def test_simple_sectioned_execution():
