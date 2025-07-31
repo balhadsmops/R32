@@ -760,8 +760,12 @@ function App() {
     </div>
   );
 
-  // Data Preview and Cleaning Components
+  // SPSS-Like Data Preview and Variable Management Component
   const DataPreviewTable = ({ sessionId, apiKey }) => {
+    // View state
+    const [viewMode, setViewMode] = useState('data'); // 'data' or 'variable'
+    
+    // Data view states
     const [data, setData] = useState([]);
     const [qualityInfo, setQualityInfo] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -772,7 +776,19 @@ function App() {
     const [filters, setFilters] = useState({});
     const [showCleaning, setShowCleaning] = useState(false);
     const [dataStats, setDataStats] = useState(null);
+    
+    // Variable view states
+    const [variables, setVariables] = useState([]);
+    const [editingVariable, setEditingVariable] = useState(null);
+    const [editingCell, setEditingCell] = useState(null);
+    
+    // Missing data suggestions states
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [suggestions, setSuggestions] = useState([]);
+    const [selectedSuggestions, setSelectedSuggestions] = useState({});
+    const [applyingSuggestions, setApplyingSuggestions] = useState(false);
 
+    // Load data preview (existing functionality)
     const loadDataPreview = async (page = 1, sort = null, direction = 'asc', appliedFilters = {}) => {
       if (!sessionId) return;
       
@@ -809,6 +825,126 @@ function App() {
       }
     };
 
+    // Load variable metadata
+    const loadVariableMetadata = async () => {
+      if (!sessionId) return;
+      
+      try {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/sessions/${sessionId}/variable-metadata`);
+        if (response.ok) {
+          const result = await response.json();
+          setVariables(result.variables);
+        }
+      } catch (error) {
+        console.error('Error loading variable metadata:', error);
+      }
+    };
+
+    // Save variable metadata
+    const saveVariableMetadata = async (updatedVariables) => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/sessions/${sessionId}/variable-metadata`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionId,
+            variables: updatedVariables
+          })
+        });
+
+        if (response.ok) {
+          setVariables(updatedVariables);
+        } else {
+          console.error('Failed to save variable metadata');
+        }
+      } catch (error) {
+        console.error('Error saving variable metadata:', error);
+      }
+    };
+
+    // Load missing data suggestions
+    const loadMissingSuggestions = async () => {
+      if (!sessionId) return;
+      
+      try {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/sessions/${sessionId}/missing-suggestions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionId,
+            threshold_percentage: 5.0 // Suggest for columns with >5% missing
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setSuggestions(result.suggestions);
+          setShowSuggestions(result.suggestions.length > 0);
+        }
+      } catch (error) {
+        console.error('Error loading missing suggestions:', error);
+      }
+    };
+
+    // Apply selected suggestions
+    const applySuggestions = async () => {
+      if (Object.keys(selectedSuggestions).length === 0) return;
+      
+      setApplyingSuggestions(true);
+      try {
+        const accepted_suggestions = Object.entries(selectedSuggestions)
+          .filter(([_, label]) => label)
+          .map(([column_name, label_to_apply]) => ({ column_name, label_to_apply }));
+
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/sessions/${sessionId}/apply-suggestions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionId,
+            accepted_suggestions
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          alert(`Applied ${result.total_filled} missing data labels successfully!`);
+          setShowSuggestions(false);
+          setSelectedSuggestions({});
+          loadDataPreview(); // Refresh data
+        }
+      } catch (error) {
+        console.error('Error applying suggestions:', error);
+        alert('Error applying suggestions');
+      } finally {
+        setApplyingSuggestions(false);
+      }
+    };
+
+    // Edit cell data
+    const editCell = async (rowIndex, columnName, newValue) => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/sessions/${sessionId}/edit-cell`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionId,
+            row_index: rowIndex,
+            column_name: columnName,
+            new_value: newValue
+          })
+        });
+
+        if (response.ok) {
+          loadDataPreview(); // Refresh data
+          setEditingCell(null);
+        } else {
+          console.error('Failed to edit cell');
+        }
+      } catch (error) {
+        console.error('Error editing cell:', error);
+      }
+    };
+
     const loadDataQuality = async () => {
       if (!sessionId) return;
       
@@ -830,6 +966,8 @@ function App() {
       if (sessionId) {
         loadDataPreview();
         loadDataQuality();
+        loadVariableMetadata();
+        loadMissingSuggestions();
       }
     }, [sessionId]);
 
@@ -860,13 +998,42 @@ function App() {
     }
 
     return (
-      <div className="data-preview-container h-full flex flex-col">
-        {/* Header */}
+      <div className="spss-data-container h-full flex flex-col">
+        {/* Header with View Toggle */}
         <div className={`flex items-center justify-between p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-          <div>
+          <div className="flex items-center space-x-4">
             <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Data Preview & Cleaning
+              SPSS-Style Data Manager
             </h3>
+            
+            {/* View Toggle Buttons */}
+            <div className="flex rounded-lg overflow-hidden border border-gray-300">
+              <button
+                onClick={() => setViewMode('data')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  viewMode === 'data'
+                    ? 'bg-blue-500 text-white'
+                    : darkMode
+                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                📊 Data View
+              </button>
+              <button
+                onClick={() => setViewMode('variable')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  viewMode === 'variable'
+                    ? 'bg-blue-500 text-white'
+                    : darkMode
+                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                📝 Variable View
+              </button>
+            </div>
+            
             {dataStats && (
               <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 {dataStats.total_rows.toLocaleString()} rows × {dataStats.total_columns} columns
@@ -878,7 +1045,17 @@ function App() {
               </p>
             )}
           </div>
+          
           <div className="flex space-x-2">
+            {suggestions.length > 0 && (
+              <button
+                onClick={() => setShowSuggestions(!showSuggestions)}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-yellow-500 text-white hover:bg-yellow-600 transition-colors"
+              >
+                💡 Missing Data Suggestions ({suggestions.length})
+              </button>
+            )}
+            
             <button
               onClick={() => setShowCleaning(!showCleaning)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -891,6 +1068,7 @@ function App() {
             >
               {showCleaning ? 'Hide Cleaning' : 'Show Cleaning'}
             </button>
+            
             {Object.keys(filters).length > 0 && (
               <button
                 onClick={clearFilters}
@@ -901,6 +1079,100 @@ function App() {
             )}
           </div>
         </div>
+
+        {/* Missing Data Suggestions Modal */}
+        {showSuggestions && (
+          <div className={`p-4 border-b ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-blue-50'}`}>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                🤖 AI Missing Data Suggestions
+              </h4>
+              <button
+                onClick={() => setShowSuggestions(false)}
+                className={`text-sm ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
+              >
+                ✕ Close
+              </button>
+            </div>
+            
+            <div className="space-y-3 max-h-48 overflow-y-auto">
+              {suggestions.map((suggestion, index) => (
+                <div key={index} className={`p-3 rounded-lg border ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-white'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {suggestion.column_name}
+                        </span>
+                        <span className="text-sm text-red-500">
+                          ({suggestion.missing_count} missing • {suggestion.missing_percentage}%)
+                        </span>
+                      </div>
+                      <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {suggestion.rationale}
+                      </p>
+                      <div className="mt-2">
+                        <input
+                          type="text"
+                          placeholder={suggestion.suggested_label}
+                          value={selectedSuggestions[suggestion.column_name] || suggestion.suggested_label}
+                          onChange={(e) => setSelectedSuggestions(prev => ({
+                            ...prev,
+                            [suggestion.column_name]: e.target.value
+                          }))}
+                          className={`w-full px-3 py-1 text-sm rounded border ${
+                            darkMode 
+                              ? 'bg-gray-600 border-gray-500 text-white' 
+                              : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                        />
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={selectedSuggestions[suggestion.column_name] !== undefined}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedSuggestions(prev => ({
+                            ...prev,
+                            [suggestion.column_name]: suggestion.suggested_label
+                          }));
+                        } else {
+                          const newSelected = { ...selectedSuggestions };
+                          delete newSelected[suggestion.column_name];
+                          setSelectedSuggestions(newSelected);
+                        }
+                      }}
+                      className="ml-3"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex justify-end mt-4 space-x-2">
+              <button
+                onClick={() => {
+                  const allSelected = {};
+                  suggestions.forEach(s => {
+                    allSelected[s.column_name] = s.suggested_label;
+                  });
+                  setSelectedSuggestions(allSelected);
+                }}
+                className="px-4 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600"
+              >
+                Select All
+              </button>
+              <button
+                onClick={applySuggestions}
+                disabled={Object.keys(selectedSuggestions).length === 0 || applyingSuggestions}
+                className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+              >
+                {applyingSuggestions ? 'Applying...' : `Apply Selected (${Object.keys(selectedSuggestions).length})`}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Data Quality Summary */}
         {dataStats && (
@@ -939,100 +1211,446 @@ function App() {
           <DataCleaningInterface 
             sessionId={sessionId} 
             apiKey={apiKey} 
-            onDataCleaned={() => loadDataPreview()} 
+            onDataCleaned={() => {
+              loadDataPreview();
+              loadMissingSuggestions(); // Refresh suggestions after cleaning
+            }} 
             qualityInfo={qualityInfo}
             darkMode={darkMode}
           />
         )}
 
-        {/* Data Table */}
+        {/* Main Content Area */}
         <div className="flex-1 overflow-auto">
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="loading-dots">
-                <div className="loading-dot"></div>
-                <div className="loading-dot"></div>
-                <div className="loading-dot"></div>
-              </div>
-            </div>
-          ) : data.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className={`w-full text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                <thead className={`sticky top-0 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'} border-b`}>
-                  <tr>
-                    {data[0] && Object.keys(data[0]).map((column, index) => {
-                      const colQuality = qualityInfo.find(q => q.column_name === column);
-                      return (
-                        <th key={index} className="px-4 py-3 text-left">
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => handleSort(column)}
-                              className={`flex items-center space-x-1 hover:${darkMode ? 'text-white' : 'text-gray-900'} transition-colors`}
-                            >
-                              <span className="font-medium">{column}</span>
-                              {sortColumn === column && (
-                                <span className="text-blue-500">
-                                  {sortDirection === 'asc' ? '↑' : '↓'}
-                                </span>
-                              )}
-                            </button>
-                            {colQuality && (
-                              <div className="flex space-x-1">
-                                {colQuality.missing_percentage > 10 && (
-                                  <span className="w-2 h-2 bg-red-500 rounded-full" title="High missing data"></span>
-                                )}
-                                {colQuality.outliers_count > 0 && (
-                                  <span className="w-2 h-2 bg-yellow-500 rounded-full" title="Contains outliers"></span>
+          {viewMode === 'data' ? (
+            // DATA VIEW - Excel-like table
+            <div className="data-view">
+              {loading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="loading-dots">
+                    <div className="loading-dot"></div>
+                    <div className="loading-dot"></div>
+                    <div className="loading-dot"></div>
+                  </div>
+                </div>
+              ) : data.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className={`w-full text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <thead className={`sticky top-0 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'} border-b`}>
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium text-xs bg-gray-200 text-gray-600">ROW</th>
+                        {data[0] && Object.keys(data[0]).map((column, index) => {
+                          const colQuality = qualityInfo.find(q => q.column_name === column);
+                          return (
+                            <th key={index} className="px-4 py-3 text-left min-w-32">
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => handleSort(column)}
+                                  className={`flex items-center space-x-1 hover:${darkMode ? 'text-white' : 'text-gray-900'} transition-colors`}
+                                >
+                                  <span className="font-medium truncate max-w-24" title={column}>{column}</span>
+                                  {sortColumn === column && (
+                                    <span className="text-blue-500">
+                                      {sortDirection === 'asc' ? '↑' : '↓'}
+                                    </span>
+                                  )}
+                                </button>
+                                {colQuality && (
+                                  <div className="flex space-x-1">
+                                    {colQuality.missing_percentage > 10 && (
+                                      <span className="w-2 h-2 bg-red-500 rounded-full" title="High missing data"></span>
+                                    )}
+                                    {colQuality.outliers_count > 0 && (
+                                      <span className="w-2 h-2 bg-yellow-500 rounded-full" title="Contains outliers"></span>
+                                    )}
+                                  </div>
                                 )}
                               </div>
-                            )}
-                          </div>
-                          <div className={`text-xs font-normal ${darkMode ? 'text-gray-500' : 'text-gray-400'} mt-1`}>
-                            {colQuality?.data_type}
-                            {colQuality && colQuality.missing_count > 0 && (
-                              <span className="ml-1 text-red-400">
-                                ({colQuality.missing_percentage.toFixed(1)}% missing)
-                              </span>
-                            )}
-                          </div>
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.map((row, rowIndex) => (
-                    <tr 
-                      key={rowIndex} 
-                      className={`border-b ${darkMode ? 'border-gray-700 hover:bg-gray-800' : 'border-gray-200 hover:bg-gray-50'}`}
-                    >
-                      {Object.entries(row).map(([column, value], cellIndex) => (
-                        <td key={cellIndex} className="px-4 py-3">
-                          <div className="max-w-xs truncate">
-                            {value === null || value === undefined || value === '' ? (
-                              <span className={`italic ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                                null
-                              </span>
-                            ) : (
-                              <span>{String(value)}</span>
-                            )}
-                          </div>
-                        </td>
+                              <div className={`text-xs font-normal ${darkMode ? 'text-gray-500' : 'text-gray-400'} mt-1`}>
+                                {colQuality?.data_type}
+                                {colQuality && colQuality.missing_count > 0 && (
+                                  <span className="ml-1 text-red-400">
+                                    ({colQuality.missing_percentage.toFixed(1)}% missing)
+                                  </span>
+                                )}
+                              </div>
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.map((row, rowIndex) => (
+                        <tr 
+                          key={rowIndex} 
+                          className={`border-b ${darkMode ? 'border-gray-700 hover:bg-gray-800' : 'border-gray-200 hover:bg-gray-50'}`}
+                        >
+                          <td className="px-4 py-2 text-xs bg-gray-100 text-gray-600 font-mono">
+                            {(currentPage - 1) * 50 + rowIndex + 1}
+                          </td>
+                          {Object.entries(row).map(([column, value], cellIndex) => {
+                            const isEditing = editingCell?.row === rowIndex && editingCell?.column === column;
+                            
+                            return (
+                              <td key={cellIndex} className="px-4 py-2 relative">
+                                {isEditing ? (
+                                  <input
+                                    type="text"
+                                    value={editingCell.value}
+                                    onChange={(e) => setEditingCell({...editingCell, value: e.target.value})}
+                                    onBlur={() => {
+                                      editCell(rowIndex, column, editingCell.value);
+                                    }}
+                                    onKeyPress={(e) => {
+                                      if (e.key === 'Enter') {
+                                        editCell(rowIndex, column, editingCell.value);
+                                      } else if (e.key === 'Escape') {
+                                        setEditingCell(null);
+                                      }
+                                    }}
+                                    className={`w-full px-2 py-1 text-sm border rounded ${
+                                      darkMode 
+                                        ? 'bg-gray-700 border-gray-600 text-white' 
+                                        : 'bg-white border-gray-300 text-gray-900'
+                                    }`}
+                                    autoFocus
+                                  />
+                                ) : (
+                                  <div 
+                                    className="max-w-xs truncate cursor-pointer hover:bg-blue-50 px-2 py-1 rounded"
+                                    onClick={() => setEditingCell({
+                                      row: rowIndex,
+                                      column: column,
+                                      value: value === null || value === undefined ? '' : String(value)
+                                    })}
+                                    title="Click to edit"
+                                  >
+                                    {value === null || value === undefined || value === '' ? (
+                                      <span className={`italic ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                        null
+                                      </span>
+                                    ) : (
+                                      <span>{String(value)}</span>
+                                    )}
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
                       ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-64">
+                  <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No data available</p>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="flex items-center justify-center h-64">
-              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No data available</p>
+            // VARIABLE VIEW - SPSS-style metadata table
+            <div className="variable-view">
+              {variables.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className={`w-full text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <thead className={`sticky top-0 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'} border-b`}>
+                      <tr>
+                        <th className="px-3 py-3 text-left font-medium">Name</th>
+                        <th className="px-3 py-3 text-left font-medium">Type</th>
+                        <th className="px-3 py-3 text-left font-medium">Width</th>
+                        <th className="px-3 py-3 text-left font-medium">Decimals</th>
+                        <th className="px-3 py-3 text-left font-medium">Label</th>
+                        <th className="px-3 py-3 text-left font-medium">Values</th>
+                        <th className="px-3 py-3 text-left font-medium">Missing</th>
+                        <th className="px-3 py-3 text-left font-medium">Columns</th>
+                        <th className="px-3 py-3 text-left font-medium">Align</th>
+                        <th className="px-3 py-3 text-left font-medium">Measure</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {variables.map((variable, index) => {
+                        const isEditing = editingVariable === index;
+                        
+                        return (
+                          <tr 
+                            key={index} 
+                            className={`border-b ${darkMode ? 'border-gray-700 hover:bg-gray-800' : 'border-gray-200 hover:bg-gray-50'}`}
+                            onClick={() => setEditingVariable(isEditing ? null : index)}
+                          >
+                            {/* Variable Name */}
+                            <td className="px-3 py-3 font-medium">
+                              <span className="font-mono text-blue-600">{variable.name}</span>
+                            </td>
+                            
+                            {/* Type */}
+                            <td className="px-3 py-3">
+                              {isEditing ? (
+                                <select
+                                  value={variable.type}
+                                  onChange={(e) => {
+                                    const updatedVariables = [...variables];
+                                    updatedVariables[index].type = e.target.value;
+                                    setVariables(updatedVariables);
+                                    saveVariableMetadata(updatedVariables);
+                                  }}
+                                  className={`px-2 py-1 text-sm border rounded ${
+                                    darkMode 
+                                      ? 'bg-gray-700 border-gray-600 text-white' 
+                                      : 'bg-white border-gray-300 text-gray-900'
+                                  }`}
+                                >
+                                  <option value="Numeric">Numeric</option>
+                                  <option value="String">String</option>
+                                </select>
+                              ) : (
+                                <span className={variable.type === 'Numeric' ? 'text-green-600' : 'text-orange-600'}>
+                                  {variable.type}
+                                </span>
+                              )}
+                            </td>
+                            
+                            {/* Width */}
+                            <td className="px-3 py-3">
+                              {isEditing ? (
+                                <input
+                                  type="number"
+                                  value={variable.width}
+                                  min="1"
+                                  max="255"
+                                  onChange={(e) => {
+                                    const updatedVariables = [...variables];
+                                    updatedVariables[index].width = parseInt(e.target.value) || 8;
+                                    setVariables(updatedVariables);
+                                    saveVariableMetadata(updatedVariables);
+                                  }}
+                                  className={`w-16 px-2 py-1 text-sm border rounded ${
+                                    darkMode 
+                                      ? 'bg-gray-700 border-gray-600 text-white' 
+                                      : 'bg-white border-gray-300 text-gray-900'
+                                  }`}
+                                />
+                              ) : (
+                                <span>{variable.width}</span>
+                              )}
+                            </td>
+                            
+                            {/* Decimals */}
+                            <td className="px-3 py-3">
+                              {isEditing ? (
+                                <input
+                                  type="number"
+                                  value={variable.decimals}
+                                  min="0"
+                                  max="16"
+                                  disabled={variable.type !== 'Numeric'}
+                                  onChange={(e) => {
+                                    const updatedVariables = [...variables];
+                                    updatedVariables[index].decimals = parseInt(e.target.value) || 0;
+                                    setVariables(updatedVariables);
+                                    saveVariableMetadata(updatedVariables);
+                                  }}
+                                  className={`w-16 px-2 py-1 text-sm border rounded ${
+                                    variable.type !== 'Numeric' ? 'opacity-50 cursor-not-allowed' : ''
+                                  } ${
+                                    darkMode 
+                                      ? 'bg-gray-700 border-gray-600 text-white' 
+                                      : 'bg-white border-gray-300 text-gray-900'
+                                  }`}
+                                />
+                              ) : (
+                                <span className={variable.type !== 'Numeric' ? 'text-gray-400' : ''}>
+                                  {variable.type === 'Numeric' ? variable.decimals : '-'}
+                                </span>
+                              )}
+                            </td>
+                            
+                            {/* Label */}
+                            <td className="px-3 py-3">
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  value={variable.label}
+                                  placeholder="Variable description"
+                                  onChange={(e) => {
+                                    const updatedVariables = [...variables];
+                                    updatedVariables[index].label = e.target.value;
+                                    setVariables(updatedVariables);
+                                    saveVariableMetadata(updatedVariables);
+                                  }}
+                                  className={`w-full px-2 py-1 text-sm border rounded ${
+                                    darkMode 
+                                      ? 'bg-gray-700 border-gray-600 text-white' 
+                                      : 'bg-white border-gray-300 text-gray-900'
+                                  }`}
+                                />
+                              ) : (
+                                <span className="text-gray-600 italic">{variable.label || 'No label'}</span>
+                              )}
+                            </td>
+                            
+                            {/* Values (Value Labels) */}
+                            <td className="px-3 py-3">
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  placeholder="1=Yes, 2=No"
+                                  value={Object.entries(variable.values).map(([k,v]) => `${k}=${v}`).join(', ')}
+                                  onChange={(e) => {
+                                    const updatedVariables = [...variables];
+                                    const valueMap = {};
+                                    if (e.target.value.trim()) {
+                                      e.target.value.split(',').forEach(pair => {
+                                        const [key, value] = pair.split('=').map(s => s.trim());
+                                        if (key && value) valueMap[key] = value;
+                                      });
+                                    }
+                                    updatedVariables[index].values = valueMap;
+                                    setVariables(updatedVariables);
+                                    saveVariableMetadata(updatedVariables);
+                                  }}
+                                  className={`w-full px-2 py-1 text-sm border rounded ${
+                                    darkMode 
+                                      ? 'bg-gray-700 border-gray-600 text-white' 
+                                      : 'bg-white border-gray-300 text-gray-900'
+                                  }`}
+                                />
+                              ) : (
+                                <span className="text-sm text-purple-600">
+                                  {Object.keys(variable.values).length > 0 
+                                    ? Object.entries(variable.values).map(([k,v]) => `${k}=${v}`).join(', ')
+                                    : 'None'
+                                  }
+                                </span>
+                              )}
+                            </td>
+                            
+                            {/* Missing Values */}
+                            <td className="px-3 py-3">
+                              {isEditing ? (
+                                <input
+                                  type="text"
+                                  placeholder="99, -999"
+                                  value={variable.missing.join(', ')}
+                                  onChange={(e) => {
+                                    const updatedVariables = [...variables];
+                                    updatedVariables[index].missing = e.target.value 
+                                      ? e.target.value.split(',').map(s => s.trim()).filter(s => s)
+                                      : [];
+                                    setVariables(updatedVariables);
+                                    saveVariableMetadata(updatedVariables);
+                                  }}
+                                  className={`w-full px-2 py-1 text-sm border rounded ${
+                                    darkMode 
+                                      ? 'bg-gray-700 border-gray-600 text-white' 
+                                      : 'bg-white border-gray-300 text-gray-900'
+                                  }`}
+                                />
+                              ) : (
+                                <span className="text-sm text-red-600">
+                                  {variable.missing.length > 0 ? variable.missing.join(', ') : 'None'}
+                                </span>
+                              )}
+                            </td>
+                            
+                            {/* Columns */}
+                            <td className="px-3 py-3">
+                              {isEditing ? (
+                                <input
+                                  type="number"
+                                  value={variable.columns}
+                                  min="1"
+                                  max="255"
+                                  onChange={(e) => {
+                                    const updatedVariables = [...variables];
+                                    updatedVariables[index].columns = parseInt(e.target.value) || 8;
+                                    setVariables(updatedVariables);
+                                    saveVariableMetadata(updatedVariables);
+                                  }}
+                                  className={`w-16 px-2 py-1 text-sm border rounded ${
+                                    darkMode 
+                                      ? 'bg-gray-700 border-gray-600 text-white' 
+                                      : 'bg-white border-gray-300 text-gray-900'
+                                  }`}
+                                />
+                              ) : (
+                                <span>{variable.columns}</span>
+                              )}
+                            </td>
+                            
+                            {/* Align */}
+                            <td className="px-3 py-3">
+                              {isEditing ? (
+                                <select
+                                  value={variable.align}
+                                  onChange={(e) => {
+                                    const updatedVariables = [...variables];
+                                    updatedVariables[index].align = e.target.value;
+                                    setVariables(updatedVariables);
+                                    saveVariableMetadata(updatedVariables);
+                                  }}
+                                  className={`px-2 py-1 text-sm border rounded ${
+                                    darkMode 
+                                      ? 'bg-gray-700 border-gray-600 text-white' 
+                                      : 'bg-white border-gray-300 text-gray-900'
+                                  }`}
+                                >
+                                  <option value="Left">Left</option>
+                                  <option value="Right">Right</option>
+                                  <option value="Center">Center</option>
+                                </select>
+                              ) : (
+                                <span>{variable.align}</span>
+                              )}
+                            </td>
+                            
+                            {/* Measure */}
+                            <td className="px-3 py-3">
+                              {isEditing ? (
+                                <select
+                                  value={variable.measure}
+                                  onChange={(e) => {
+                                    const updatedVariables = [...variables];
+                                    updatedVariables[index].measure = e.target.value;
+                                    setVariables(updatedVariables);
+                                    saveVariableMetadata(updatedVariables);
+                                  }}
+                                  className={`px-2 py-1 text-sm border rounded ${
+                                    darkMode 
+                                      ? 'bg-gray-700 border-gray-600 text-white' 
+                                      : 'bg-white border-gray-300 text-gray-900'
+                                  }`}
+                                >
+                                  <option value="Scale">Scale</option>
+                                  <option value="Ordinal">Ordinal</option>
+                                  <option value="Nominal">Nominal</option>
+                                </select>
+                              ) : (
+                                <span className={
+                                  variable.measure === 'Scale' ? 'text-blue-600' :
+                                  variable.measure === 'Ordinal' ? 'text-orange-600' : 'text-green-600'
+                                }>
+                                  {variable.measure}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-64">
+                  <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Loading variable metadata...</p>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
+        {/* Pagination (only for Data View) */}
+        {viewMode === 'data' && totalPages > 1 && (
           <div className={`flex items-center justify-between p-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
             <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               Page {currentPage} of {totalPages}
