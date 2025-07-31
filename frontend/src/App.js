@@ -170,12 +170,6 @@ function App() {
     }
   };
 
-  const saveApiKey = () => {
-    localStorage.setItem('gemini_api_key', apiKey);
-    localStorage.setItem('gemini_model', selectedModel);
-    setConnectionStatus(null); // Clear any previous connection status
-  };
-
   const handleFileUpload = async (event) => {
     const selectedFile = event.target.files[0];
     if (!selectedFile) return;
