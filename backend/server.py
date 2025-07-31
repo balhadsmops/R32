@@ -813,6 +813,11 @@ class ChatMessage(BaseModel):
 class APIKeyConfig(BaseModel):
     gemini_api_key: str
 
+class TestConnectionRequest(BaseModel):
+    gemini_api_key: str
+    model: str
+    message: str
+
 class AnalysisRequest(BaseModel):
     session_id: str
     analysis_type: str
