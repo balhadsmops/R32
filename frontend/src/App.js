@@ -836,6 +836,59 @@ function App() {
           }`} style={{ height: 'calc(100vh - 140px)' }}>
             {currentSession ? (
               <>
+                {/* Show data preview if session has CSV data but no messages */}
+                {messages.length === 0 && currentSession.csv_preview && (
+                  <div className="flex items-center justify-center h-full">
+                    <div className={`max-w-2xl mx-auto p-8 rounded-2xl border-2 ${
+                      darkMode 
+                        ? 'bg-gray-800/50 border-gray-600/50 shadow-2xl shadow-gray-900/20' 
+                        : 'bg-white/80 border-gray-200/80 shadow-2xl shadow-gray-500/10'
+                    } backdrop-blur-sm`}>
+                      <div className="text-center mb-6">
+                        <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center shadow-lg ${
+                          darkMode 
+                            ? 'bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-blue-500/30' 
+                            : 'bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200/50'
+                        }`}>
+                          <svg className={`w-8 h-8 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <h3 className={`text-xl font-semibold mb-2 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
+                          Dataset Loaded: {currentSession.title || currentSession.filename}
+                        </h3>
+                        <div className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'} space-y-2`}>
+                          <p><span className="font-medium">Dimensions:</span> {currentSession.csv_preview.shape[0]} rows × {currentSession.csv_preview.shape[1]} columns</p>
+                          <p><span className="font-medium">Columns:</span> {currentSession.csv_preview.columns.slice(0, 3).join(', ')}{currentSession.csv_preview.columns.length > 3 ? `... (+${currentSession.csv_preview.columns.length - 3} more)` : ''}</p>
+                        </div>
+                      </div>
+                      
+                      <div className={`p-4 rounded-xl mb-6 ${darkMode ? 'bg-gray-700/30' : 'bg-gray-100/50'}`}>
+                        <h4 className={`font-medium mb-3 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>Quick Stats</h4>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className={`block ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Data Quality</span>
+                            <span className={`font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                              {Math.round((1 - Object.values(currentSession.csv_preview.null_counts || {}).reduce((a, b) => a + b, 0) / (currentSession.csv_preview.shape[0] * currentSession.csv_preview.shape[1])) * 100)}% Complete
+                            </span>
+                          </div>
+                          <div>
+                            <span className={`block ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>File Size</span>
+                            <span className={`font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                              {currentSession.csv_preview.shape[0] * currentSession.csv_preview.shape[1]} cells
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} text-center`}>
+                        Start chatting below to analyze your data with AI assistance
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Show messages if any exist */}
                 {messages.map((message, index) => (
                   <MessageRenderer key={index} message={message} />
                 ))}
