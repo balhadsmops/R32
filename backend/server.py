@@ -935,6 +935,171 @@ class EnhancedPythonExecutionRequest(BaseModel):
     analysis_title: Optional[str] = "Statistical Analysis"
     auto_section: bool = True  # Whether to auto-detect analysis sections
 
+# Data Cleaning Service
+class DataCleaningService:
+    
+    @staticmethod
+    def get_data_quality_info(df: pd.DataFrame) -> List[DataQualityResponse]:
+        """Get comprehensive data quality information for each column"""
+        quality_info = []
+        
+        for column in df.columns:
+            col_data = df[column]
+            
+            # Basic statistics
+            missing_count = int(col_data.isnull().sum())
+            missing_percentage = float((missing_count / len(df)) * 100)
+            unique_count = int(col_data.nunique())
+            
+            # Detect outliers for numeric columns
+            outliers_count = 0
+            statistics = None
+            
+            if pd.api.types.is_numeric_dtype(col_data):
+                # Calculate statistics for numeric columns
+                statistics = {
+                    "mean": float(col_data.mean()) if not col_data.empty else None,
+                    "median": float(col_data.median()) if not col_data.empty else None,
+                    "std": float(col_data.std()) if not col_data.empty else None,
+                    "min": float(col_data.min()) if not col_data.empty else None,
+                    "max": float(col_data.max()) if not col_data.empty else None,
+                    "q25": float(col_data.quantile(0.25)) if not col_data.empty else None,
+                    "q75": float(col_data.quantile(0.75)) if not col_data.empty else None
+                }
+                
+                # Detect outliers using IQR method
+                if not col_data.empty:
+                    Q1 = col_data.quantile(0.25)
+                    Q3 = col_data.quantile(0.75)
+                    IQR = Q3 - Q1
+                    lower_bound = Q1 - 1.5 * IQR
+                    upper_bound = Q3 + 1.5 * IQR
+                    outliers_count = int(((col_data < lower_bound) | (col_data > upper_bound)).sum())
+            else:
+                # For categorical columns
+                statistics = {
+                    "mode": col_data.mode().iloc[0] if not col_data.mode().empty else None,
+                    "top_values": col_data.value_counts().head(5).to_dict()
+                }
+            
+            # Count duplicates (rows with same value in this column)
+            duplicates = int(col_data.duplicated().sum())
+            
+            quality_info.append(DataQualityResponse(
+                column_name=column,
+                data_type=str(col_data.dtype),
+                missing_count=missing_count,
+                missing_percentage=missing_percentage,
+                unique_count=unique_count,
+                duplicates=duplicates,
+                outliers_count=outliers_count,
+                statistics=statistics
+            ))
+        
+        return quality_info
+    
+    @staticmethod
+    def apply_missing_data_strategy(df: pd.DataFrame, strategy: str, columns: List[str] = None, fill_value: Any = None) -> pd.DataFrame:
+        """Apply missing data handling strategy"""
+        df_cleaned = df.copy()
+        target_columns = columns if columns else df.columns.tolist()
+        
+        for column in target_columns:
+            if column not in df.columns:
+                continue
+                
+            if strategy == "drop":
+                df_cleaned = df_cleaned.dropna(subset=[column])
+            elif strategy == "fill_mean" and pd.api.types.is_numeric_dtype(df[column]):
+                df_cleaned[column] = df_cleaned[column].fillna(df_cleaned[column].mean())
+            elif strategy == "fill_median" and pd.api.types.is_numeric_dtype(df[column]):
+                df_cleaned[column] = df_cleaned[column].fillna(df_cleaned[column].median())
+            elif strategy == "fill_mode":
+                mode_value = df_cleaned[column].mode()
+                if not mode_value.empty:
+                    df_cleaned[column] = df_cleaned[column].fillna(mode_value.iloc[0])
+            elif strategy == "fill_value" and fill_value is not None:
+                df_cleaned[column] = df_cleaned[column].fillna(fill_value)
+            elif strategy == "forward_fill":
+                df_cleaned[column] = df_cleaned[column].fillna(method='ffill')
+            elif strategy == "backward_fill":
+                df_cleaned[column] = df_cleaned[column].fillna(method='bfill')
+        
+        return df_cleaned
+    
+    @staticmethod
+    def detect_outliers(df: pd.DataFrame, method: str, columns: List[str] = None, threshold: float = 1.5, z_threshold: float = 3.0) -> Dict[str, List[int]]:
+        """Detect outliers using various methods"""
+        outliers = {}
+        target_columns = columns if columns else [col for col in df.columns if pd.api.types.is_numeric_dtype(df[col])]
+        
+        for column in target_columns:
+            if column not in df.columns or not pd.api.types.is_numeric_dtype(df[column]):
+                continue
+                
+            col_data = df[column].dropna()
+            outlier_indices = []
+            
+            if method == "iqr":
+                Q1 = col_data.quantile(0.25)
+                Q3 = col_data.quantile(0.75)
+                IQR = Q3 - Q1
+                lower_bound = Q1 - threshold * IQR
+                upper_bound = Q3 + threshold * IQR
+                outlier_indices = df[(df[column] < lower_bound) | (df[column] > upper_bound)].index.tolist()
+            elif method == "zscore":
+                z_scores = np.abs(stats.zscore(col_data))
+                outlier_indices = df[np.abs(stats.zscore(df[column].fillna(col_data.mean()))) > z_threshold].index.tolist()
+            elif method == "isolation_forest":
+                from sklearn.ensemble import IsolationForest
+                iso_forest = IsolationForest(contamination=0.1, random_state=42)
+                outlier_preds = iso_forest.fit_predict(col_data.values.reshape(-1, 1))
+                outlier_indices = df[col_data.index][outlier_preds == -1].index.tolist()
+            
+            outliers[column] = outlier_indices
+        
+        return outliers
+    
+    @staticmethod
+    def apply_data_transformation(df: pd.DataFrame, transformation_type: str, columns: List[str] = None, encoding_method: str = "onehot") -> pd.DataFrame:
+        """Apply data transformations"""
+        df_transformed = df.copy()
+        target_columns = columns if columns else df.columns.tolist()
+        
+        for column in target_columns:
+            if column not in df.columns:
+                continue
+                
+            if transformation_type == "normalize" and pd.api.types.is_numeric_dtype(df[column]):
+                from sklearn.preprocessing import MinMaxScaler
+                scaler = MinMaxScaler()
+                df_transformed[column] = scaler.fit_transform(df_transformed[[column]])
+            elif transformation_type == "standardize" and pd.api.types.is_numeric_dtype(df[column]):
+                from sklearn.preprocessing import StandardScaler
+                scaler = StandardScaler()
+                df_transformed[column] = scaler.fit_transform(df_transformed[[column]])
+            elif transformation_type == "log_transform" and pd.api.types.is_numeric_dtype(df[column]):
+                # Add small constant to handle zeros and negative values
+                df_transformed[column] = np.log1p(df_transformed[column] - df_transformed[column].min() + 1)
+            elif transformation_type == "encode_categorical" and not pd.api.types.is_numeric_dtype(df[column]):
+                if encoding_method == "onehot":
+                    dummies = pd.get_dummies(df_transformed[column], prefix=column)
+                    df_transformed = pd.concat([df_transformed.drop(column, axis=1), dummies], axis=1)
+                elif encoding_method == "label":
+                    from sklearn.preprocessing import LabelEncoder
+                    le = LabelEncoder()
+                    df_transformed[column] = le.fit_transform(df_transformed[column].astype(str))
+        
+        return df_transformed
+    
+    @staticmethod
+    def remove_duplicates(df: pd.DataFrame, columns: List[str] = None, keep: str = "first") -> pd.DataFrame:
+        """Remove duplicate rows"""
+        if columns:
+            return df.drop_duplicates(subset=columns, keep=keep)
+        else:
+            return df.drop_duplicates(keep=keep)
+
 # API Routes
 # Initialize comprehensive data analyzer
 data_analyzer = ComprehensiveDataAnalyzer()
