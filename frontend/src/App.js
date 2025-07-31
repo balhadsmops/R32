@@ -834,11 +834,11 @@ function App() {
         </div>
 
         {/* Chat Area - Fixed Layout */}
-        <div className="flex-1 flex flex-col">
-          {/* Messages Area - Properly contained */}
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Messages Area - Properly contained with scroll */}
           <div className={`flex-1 overflow-y-auto p-6 space-y-4 ${
             darkMode ? 'bg-gray-900' : 'bg-gray-50'
-          }`}>
+          }`} style={{ maxHeight: '100%' }}>
             {currentSession ? (
               <>
                 {/* Show data preview if session has CSV data but no messages */}
