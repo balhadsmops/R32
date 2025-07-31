@@ -4117,14 +4117,4 @@ print(bp_by_gender)
 
 if __name__ == "__main__":
     tester = BackendTester()
-    
-    # Run CSV upload focused testing as requested
-    print("🎯 CSV UPLOAD FUNCTIONALITY TESTING")
-    print("=" * 60)
-    
-    # Run focused CSV upload tests
-    results = tester.run_csv_upload_focused_tests()
-    
-    print("\n" + "=" * 60)
-    print("🎯 TESTING COMPLETE")
-    print("=" * 60)
+    tester.run_focused_tests()
