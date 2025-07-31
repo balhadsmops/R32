@@ -18,6 +18,9 @@ function App() {
   const [showApiModal, setShowApiModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [apiKey, setApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
+  const [selectedModel, setSelectedModel] = useState(localStorage.getItem('gemini_model') || 'gemini-2.5-flash');
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState(null);
   const [darkMode, setDarkMode] = useState(localStorage.getItem('darkMode') !== 'false');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const messagesEndRef = useRef(null);
