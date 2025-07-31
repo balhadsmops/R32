@@ -757,7 +757,7 @@ function App() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">
-                        {session.filename || 'Untitled Session'}
+                        {session.title || session.filename || 'Untitled Session'}
                       </p>
                       <p className={`text-xs mt-1 ${
                         currentSession?.id === session.id
