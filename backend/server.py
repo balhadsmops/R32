@@ -918,6 +918,53 @@ async def get_comprehensive_analysis(session_id: str):
 async def root():
     return {"message": "AI Data Scientist API"}
 
+@api_router.post("/test-connection")
+async def test_connection(request: TestConnectionRequest):
+    """Test Gemini API connection with specified model"""
+    try:
+        # Validate API key
+        if not request.gemini_api_key or request.gemini_api_key.strip() == "":
+            raise HTTPException(status_code=400, detail="Gemini API key is required")
+        
+        # Check for test/invalid API keys
+        if request.gemini_api_key in ["test_key", "test_key_123", "your_api_key_here", "test"]:
+            raise HTTPException(
+                status_code=400, 
+                detail="Please provide a valid Gemini API key. Test keys are not supported."
+            )
+        
+        # Test the connection with a simple message
+        chat = LlmChat(
+            api_key=request.gemini_api_key,
+            session_id=f"test_connection_{int(time.time())}",
+            system_message="You are a helpful AI assistant. Respond briefly to test the connection."
+        ).with_model("gemini", request.model)
+        
+        test_message = request.message or "Hello, this is a connection test."
+        response = await chat.send_message(UserMessage(text=test_message))
+        
+        return {
+            "success": True,
+            "message": f"✅ Connection successful! Using {request.model}",
+            "model": request.model,
+            "response_preview": response[:100] + "..." if len(response) > 100 else response
+        }
+        
+    except Exception as e:
+        error_msg = str(e)
+        if "429" in error_msg or "Too Many Requests" in error_msg:
+            raise HTTPException(
+                status_code=429, 
+                detail="Rate limit exceeded. Please wait a moment and try again."
+            )
+        elif "400" in error_msg or "Bad Request" in error_msg or "API_KEY_INVALID" in error_msg:
+            raise HTTPException(
+                status_code=400, 
+                detail="Invalid API key. Please check your Gemini API key and try again."
+            )
+        else:
+            raise HTTPException(status_code=500, detail=f"Connection test failed: {error_msg}")
+
 async def _create_analysis_chat_messages(session_id: str, analysis_results: dict):
     """Create automatic chat messages based on comprehensive analysis results"""
     try:
