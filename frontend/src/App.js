@@ -759,6 +759,670 @@ function App() {
     </div>
   );
 
+  // Data Preview and Cleaning Components
+  const DataPreviewTable = ({ sessionId, apiKey }) => {
+    const [data, setData] = useState([]);
+    const [qualityInfo, setQualityInfo] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [sortColumn, setSortColumn] = useState(null);
+    const [sortDirection, setSortDirection] = useState('asc');
+    const [filters, setFilters] = useState({});
+    const [showCleaning, setShowCleaning] = useState(false);
+    const [dataStats, setDataStats] = useState(null);
+
+    const loadDataPreview = async (page = 1, sort = null, direction = 'asc', appliedFilters = {}) => {
+      if (!sessionId) return;
+      
+      setLoading(true);
+      try {
+        const formData = new FormData();
+        formData.append('session_id', sessionId);
+        formData.append('page', page);
+        formData.append('page_size', '50');
+        if (sort) formData.append('sort_column', sort);
+        formData.append('sort_direction', direction);
+        if (Object.keys(appliedFilters).length > 0) {
+          formData.append('filters', JSON.stringify(appliedFilters));
+        }
+
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/sessions/${sessionId}/data-preview`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setData(result.data);
+          setCurrentPage(result.current_page);
+          setTotalPages(result.total_pages);
+          setQualityInfo(result.quality_info);
+        } else {
+          console.error('Failed to load data preview');
+        }
+      } catch (error) {
+        console.error('Error loading data preview:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const loadDataQuality = async () => {
+      if (!sessionId) return;
+      
+      try {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/sessions/${sessionId}/data-quality`, {
+          method: 'POST'
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setDataStats(result.dataset_stats);
+        }
+      } catch (error) {
+        console.error('Error loading data quality:', error);
+      }
+    };
+
+    useEffect(() => {
+      if (sessionId) {
+        loadDataPreview();
+        loadDataQuality();
+      }
+    }, [sessionId]);
+
+    const handleSort = (column) => {
+      const newDirection = sortColumn === column && sortDirection === 'asc' ? 'desc' : 'asc';
+      setSortColumn(column);
+      setSortDirection(newDirection);
+      loadDataPreview(1, column, newDirection, filters);
+    };
+
+    const handleFilter = (column, value) => {
+      const newFilters = { ...filters, [column]: value };
+      setFilters(newFilters);
+      loadDataPreview(1, sortColumn, sortDirection, newFilters);
+    };
+
+    const clearFilters = () => {
+      setFilters({});
+      loadDataPreview(1, sortColumn, sortDirection, {});
+    };
+
+    if (!sessionId) {
+      return (
+        <div className={`text-center p-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+          <p>Select a session to view data preview</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="data-preview-container h-full flex flex-col">
+        {/* Header */}
+        <div className={`flex items-center justify-between p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          <div>
+            <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              Data Preview & Cleaning
+            </h3>
+            {dataStats && (
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                {dataStats.total_rows.toLocaleString()} rows × {dataStats.total_columns} columns
+                {dataStats.missing_percentage > 0 && (
+                  <span className="ml-2 text-yellow-600">
+                    • {dataStats.missing_percentage.toFixed(1)}% missing
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowCleaning(!showCleaning)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                showCleaning
+                  ? 'bg-blue-500 text-white'
+                  : darkMode
+                  ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {showCleaning ? 'Hide Cleaning' : 'Show Cleaning'}
+            </button>
+            {Object.keys(filters).length > 0 && (
+              <button
+                onClick={clearFilters}
+                className="px-3 py-2 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Data Quality Summary */}
+        {dataStats && (
+          <div className={`p-4 border-b ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="text-center">
+                <div className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {dataStats.total_rows.toLocaleString()}
+                </div>
+                <div className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Total Rows</div>
+              </div>
+              <div className="text-center">
+                <div className={`font-semibold ${dataStats.missing_percentage > 10 ? 'text-red-500' : darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {dataStats.missing_percentage.toFixed(1)}%
+                </div>
+                <div className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Missing Data</div>
+              </div>
+              <div className="text-center">
+                <div className={`font-semibold ${dataStats.duplicate_rows > 0 ? 'text-yellow-500' : darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {dataStats.duplicate_rows}
+                </div>
+                <div className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Duplicates</div>
+              </div>
+              <div className="text-center">
+                <div className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {dataStats.memory_usage.toFixed(2)} MB
+                </div>
+                <div className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Memory Usage</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cleaning Interface */}
+        {showCleaning && (
+          <DataCleaningInterface 
+            sessionId={sessionId} 
+            apiKey={apiKey} 
+            onDataCleaned={() => loadDataPreview()} 
+            qualityInfo={qualityInfo}
+            darkMode={darkMode}
+          />
+        )}
+
+        {/* Data Table */}
+        <div className="flex-1 overflow-auto">
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="loading-dots">
+                <div className="loading-dot"></div>
+                <div className="loading-dot"></div>
+                <div className="loading-dot"></div>
+              </div>
+            </div>
+          ) : data.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className={`w-full text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                <thead className={`sticky top-0 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'} border-b`}>
+                  <tr>
+                    {data[0] && Object.keys(data[0]).map((column, index) => {
+                      const colQuality = qualityInfo.find(q => q.column_name === column);
+                      return (
+                        <th key={index} className="px-4 py-3 text-left">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => handleSort(column)}
+                              className={`flex items-center space-x-1 hover:${darkMode ? 'text-white' : 'text-gray-900'} transition-colors`}
+                            >
+                              <span className="font-medium">{column}</span>
+                              {sortColumn === column && (
+                                <span className="text-blue-500">
+                                  {sortDirection === 'asc' ? '↑' : '↓'}
+                                </span>
+                              )}
+                            </button>
+                            {colQuality && (
+                              <div className="flex space-x-1">
+                                {colQuality.missing_percentage > 10 && (
+                                  <span className="w-2 h-2 bg-red-500 rounded-full" title="High missing data"></span>
+                                )}
+                                {colQuality.outliers_count > 0 && (
+                                  <span className="w-2 h-2 bg-yellow-500 rounded-full" title="Contains outliers"></span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <div className={`text-xs font-normal ${darkMode ? 'text-gray-500' : 'text-gray-400'} mt-1`}>
+                            {colQuality?.data_type}
+                            {colQuality && colQuality.missing_count > 0 && (
+                              <span className="ml-1 text-red-400">
+                                ({colQuality.missing_percentage.toFixed(1)}% missing)
+                              </span>
+                            )}
+                          </div>
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.map((row, rowIndex) => (
+                    <tr 
+                      key={rowIndex} 
+                      className={`border-b ${darkMode ? 'border-gray-700 hover:bg-gray-800' : 'border-gray-200 hover:bg-gray-50'}`}
+                    >
+                      {Object.entries(row).map(([column, value], cellIndex) => (
+                        <td key={cellIndex} className="px-4 py-3">
+                          <div className="max-w-xs truncate">
+                            {value === null || value === undefined || value === '' ? (
+                              <span className={`italic ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                null
+                              </span>
+                            ) : (
+                              <span>{String(value)}</span>
+                            )}
+                          </div>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-64">
+              <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No data available</p>
+            </div>
+          )}
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className={`flex items-center justify-between p-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => loadDataPreview(currentPage - 1, sortColumn, sortDirection, filters)}
+                disabled={currentPage === 1}
+                className={`px-3 py-1 rounded text-sm ${
+                  currentPage === 1
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                }`}
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => loadDataPreview(currentPage + 1, sortColumn, sortDirection, filters)}
+                disabled={currentPage === totalPages}
+                className={`px-3 py-1 rounded text-sm ${
+                  currentPage === totalPages
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                }`}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Data Cleaning Interface Component  
+  const DataCleaningInterface = ({ sessionId, apiKey, onDataCleaned, qualityInfo, darkMode }) => {
+    const [activeTab, setActiveTab] = useState('missing');
+    const [processing, setProcessing] = useState(false);
+    const [results, setResults] = useState(null);
+
+    const handleMissingData = async (strategy, columns = null, fillValue = null) => {
+      setProcessing(true);
+      try {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/sessions/${sessionId}/handle-missing-data`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionId,
+            strategy,
+            columns,
+            fill_value: fillValue
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setResults(result);
+          onDataCleaned();
+        }
+      } catch (error) {
+        console.error('Error handling missing data:', error);
+      } finally {
+        setProcessing(false);
+      }
+    };
+
+    const handleOutlierDetection = async (method, columns = null) => {
+      setProcessing(true);
+      try {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/sessions/${sessionId}/detect-outliers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionId,
+            method,
+            columns
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setResults(result);
+        }
+      } catch (error) {
+        console.error('Error detecting outliers:', error);
+      } finally {
+        setProcessing(false);
+      }
+    };
+
+    const handleDataTransformation = async (transformationType, columns = null) => {
+      setProcessing(true);
+      try {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/sessions/${sessionId}/transform-data`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionId,
+            transformation_type: transformationType,
+            columns
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setResults(result);
+          onDataCleaned();
+        }
+      } catch (error) {
+        console.error('Error transforming data:', error);
+      } finally {
+        setProcessing(false);
+      }
+    };
+
+    const saveCleanedData = async (cleanedDataB64, filename) => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/sessions/${sessionId}/save-cleaned-data`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cleaned_data_b64: cleanedDataB64,
+            filename
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          alert('Cleaned data saved successfully!');
+          setResults(null);
+        }
+      } catch (error) {
+        console.error('Error saving cleaned data:', error);
+      }
+    };
+
+    const columnsWithMissing = qualityInfo?.filter(q => q.missing_count > 0) || [];
+    const numericColumns = qualityInfo?.filter(q => q.data_type.includes('int') || q.data_type.includes('float')) || [];
+
+    return (
+      <div className={`border-b ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
+        <div className="p-4">
+          {/* Tabs */}
+          <div className="flex space-x-4 mb-4">
+            {['missing', 'outliers', 'transform', 'duplicates'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === tab
+                    ? 'bg-blue-500 text-white'
+                    : darkMode
+                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Missing Data Tab */}
+          {activeTab === 'missing' && (
+            <div className="space-y-4">
+              <h4 className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                Handle Missing Data ({columnsWithMissing.length} columns affected)
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <button
+                  onClick={() => handleMissingData('drop')}
+                  disabled={processing}
+                  className="px-3 py-2 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:opacity-50"
+                >
+                  Drop Rows
+                </button>
+                <button
+                  onClick={() => handleMissingData('fill_mean')}
+                  disabled={processing}
+                  className="px-3 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 disabled:opacity-50"
+                >
+                  Fill Mean
+                </button>
+                <button
+                  onClick={() => handleMissingData('fill_median')}
+                  disabled={processing}
+                  className="px-3 py-2 bg-green-500 text-white rounded text-sm hover:bg-green-600 disabled:opacity-50"
+                >
+                  Fill Median
+                </button>
+                <button
+                  onClick={() => handleMissingData('fill_mode')}
+                  disabled={processing}
+                  className="px-3 py-2 bg-purple-500 text-white rounded text-sm hover:bg-purple-600 disabled:opacity-50"
+                >
+                  Fill Mode
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Outliers Tab */}
+          {activeTab === 'outliers' && (
+            <div className="space-y-4">
+              <h4 className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                Detect Outliers ({numericColumns.length} numeric columns)
+              </h4>
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  onClick={() => handleOutlierDetection('iqr')}
+                  disabled={processing}
+                  className="px-3 py-2 bg-orange-500 text-white rounded text-sm hover:bg-orange-600 disabled:opacity-50"
+                >
+                  IQR Method
+                </button>
+                <button
+                  onClick={() => handleOutlierDetection('zscore')}
+                  disabled={processing}
+                  className="px-3 py-2 bg-teal-500 text-white rounded text-sm hover:bg-teal-600 disabled:opacity-50"
+                >
+                  Z-Score
+                </button>
+                <button
+                  onClick={() => handleOutlierDetection('isolation_forest')}
+                  disabled={processing}
+                  className="px-3 py-2 bg-indigo-500 text-white rounded text-sm hover:bg-indigo-600 disabled:opacity-50"
+                >
+                  Isolation Forest
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Transform Tab */}
+          {activeTab === 'transform' && (
+            <div className="space-y-4">
+              <h4 className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                Data Transformations
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <button
+                  onClick={() => handleDataTransformation('normalize')}
+                  disabled={processing}
+                  className="px-3 py-2 bg-cyan-500 text-white rounded text-sm hover:bg-cyan-600 disabled:opacity-50"
+                >
+                  Normalize
+                </button>
+                <button
+                  onClick={() => handleDataTransformation('standardize')}
+                  disabled={processing}
+                  className="px-3 py-2 bg-lime-500 text-white rounded text-sm hover:bg-lime-600 disabled:opacity-50"
+                >
+                  Standardize
+                </button>
+                <button
+                  onClick={() => handleDataTransformation('log_transform')}
+                  disabled={processing}
+                  className="px-3 py-2 bg-amber-500 text-white rounded text-sm hover:bg-amber-600 disabled:opacity-50"
+                >
+                  Log Transform
+                </button>
+                <button
+                  onClick={() => handleDataTransformation('encode_categorical')}
+                  disabled={processing}
+                  className="px-3 py-2 bg-rose-500 text-white rounded text-sm hover:bg-rose-600 disabled:opacity-50"
+                >
+                  Encode Categorical
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Duplicates Tab */}
+          {activeTab === 'duplicates' && (
+            <div className="space-y-4">
+              <h4 className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                Remove Duplicates
+              </h4>
+              <div className="flex space-x-3">
+                <button
+                  onClick={async () => {
+                    setProcessing(true);
+                    try {
+                      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/sessions/${sessionId}/remove-duplicates`, {
+                        method: 'POST'
+                      });
+                      if (response.ok) {
+                        const result = await response.json();
+                        setResults(result);
+                        onDataCleaned();
+                      }
+                    } catch (error) {
+                      console.error('Error removing duplicates:', error);
+                    } finally {
+                      setProcessing(false);
+                    }
+                  }}
+                  disabled={processing}
+                  className="px-4 py-2 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:opacity-50"
+                >
+                  Remove All Duplicates
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Processing Indicator */}
+          {processing && (
+            <div className="flex items-center justify-center py-4">
+              <div className="loading-dots">
+                <div className="loading-dot"></div>
+                <div className="loading-dot"></div>
+                <div className="loading-dot"></div>
+              </div>
+              <span className={`ml-2 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Processing...
+              </span>
+            </div>
+          )}
+
+          {/* Results Display */}
+          {results && (
+            <div className={`mt-4 p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'} border ${darkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+              <div className="flex items-center justify-between mb-3">
+                <h5 className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  Cleaning Results
+                </h5>
+                <button
+                  onClick={() => setResults(null)}
+                  className={`text-sm ${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
+                >
+                  ×
+                </button>
+              </div>
+              
+              {results.changes_summary && (
+                <div className={`text-sm space-y-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {Object.entries(results.changes_summary).map(([key, value]) => (
+                    <div key={key} className="flex justify-between">
+                      <span className="capitalize">{key.replace(/_/g, ' ')}:</span>
+                      <span className="font-medium">{JSON.stringify(value)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {results.outliers_by_column && (
+                <div className={`text-sm space-y-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  <h6 className="font-medium">Outliers Detected:</h6>
+                  {Object.entries(results.outliers_by_column).map(([column, info]) => (
+                    <div key={column} className="flex justify-between">
+                      <span>{column}:</span>
+                      <span className="font-medium">
+                        {info.count} outliers ({info.percentage.toFixed(1)}%)
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {(results.cleaned_data || results.transformed_data || results.deduplicated_data) && (
+                <div className="mt-4 flex space-x-2">
+                  <button
+                    onClick={() => {
+                      const cleanedData = results.cleaned_data || results.transformed_data || results.deduplicated_data;
+                      const filename = prompt('Enter filename for cleaned data:', 'cleaned_data.csv');
+                      if (filename) {
+                        saveCleanedData(cleanedData, filename);
+                      }
+                    }}
+                    className="px-4 py-2 bg-green-500 text-white rounded text-sm hover:bg-green-600"
+                  >
+                    Save as New Dataset
+                  </button>
+                  <button
+                    onClick={() => {
+                      const cleanedData = results.cleaned_data || results.transformed_data || results.deduplicated_data;
+                      saveCleanedData(cleanedData, null);
+                    }}
+                    className="px-4 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                  >
+                    Update Current Session
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={`min-h-screen transition-colors duration-300 p-4 ${darkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
       <div className="flex h-[calc(100vh-2rem)] gap-4">
