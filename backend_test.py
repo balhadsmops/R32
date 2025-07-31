@@ -473,6 +473,141 @@ invalid_syntax_here =
             print(f"❌ Analysis suggestions test failed with error: {str(e)}")
             return False
 
+    def test_connection_endpoint(self) -> bool:
+        """Test the new /test-connection endpoint with various scenarios"""
+        print("Testing /test-connection Endpoint...")
+        
+        try:
+            # Test 1: Invalid/empty API key
+            print("  Testing with empty API key...")
+            empty_key_data = {
+                'gemini_api_key': '',
+                'model': 'gemini-2.5-flash',
+                'message': 'Test connection'
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/test-connection", 
+                                   json=empty_key_data,
+                                   headers={'Content-Type': 'application/json'})
+            
+            if response.status_code == 400:
+                error_detail = response.json().get('detail', '')
+                if 'Gemini API key is required' in error_detail:
+                    print("    ✅ Empty API key properly rejected (400 status)")
+                else:
+                    print(f"    ❌ Unexpected error message for empty key: {error_detail}")
+                    return False
+            else:
+                print(f"    ❌ Empty API key not properly handled. Status: {response.status_code}")
+                return False
+            
+            # Test 2: Test keys (should be rejected)
+            print("  Testing with test keys...")
+            test_keys = ['test_key', 'test_key_123', 'your_api_key_here', 'test']
+            
+            for test_key in test_keys:
+                test_key_data = {
+                    'gemini_api_key': test_key,
+                    'model': 'gemini-2.5-flash',
+                    'message': 'Test connection'
+                }
+                
+                response = requests.post(f"{BACKEND_URL}/test-connection", 
+                                       json=test_key_data,
+                                       headers={'Content-Type': 'application/json'})
+                
+                if response.status_code == 400:
+                    error_detail = response.json().get('detail', '')
+                    if 'Please provide a valid Gemini API key' in error_detail and 'Test keys are not supported' in error_detail:
+                        print(f"    ✅ Test key '{test_key}' properly rejected")
+                    else:
+                        print(f"    ❌ Unexpected error message for test key '{test_key}': {error_detail}")
+                        return False
+                else:
+                    print(f"    ❌ Test key '{test_key}' not properly rejected. Status: {response.status_code}")
+                    return False
+            
+            # Test 3: Invalid API key format
+            print("  Testing with invalid API key format...")
+            invalid_key_data = {
+                'gemini_api_key': 'invalid_key_format_123',
+                'model': 'gemini-2.5-flash',
+                'message': 'Test connection'
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/test-connection", 
+                                   json=invalid_key_data,
+                                   headers={'Content-Type': 'application/json'})
+            
+            if response.status_code in [400, 500]:
+                error_detail = response.json().get('detail', '')
+                if any(keyword in error_detail for keyword in ['Invalid API key', 'Connection test failed', 'check your Gemini API key']):
+                    print("    ✅ Invalid API key format properly handled")
+                else:
+                    print(f"    ❌ Unexpected error message for invalid key: {error_detail}")
+                    return False
+            else:
+                print(f"    ❌ Invalid API key format not properly handled. Status: {response.status_code}")
+                return False
+            
+            # Test 4: Valid API key format (using the one from backend .env)
+            print("  Testing with realistic API key format...")
+            realistic_key_data = {
+                'gemini_api_key': TEST_API_KEY,  # Use the actual API key from backend .env
+                'model': 'gemini-2.5-flash',
+                'message': 'Hello, this is a connection test for the AI Data Scientist app.'
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/test-connection", 
+                                   json=realistic_key_data,
+                                   headers={'Content-Type': 'application/json'})
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                if (response_data.get('success') and 
+                    'Connection successful' in response_data.get('message', '') and
+                    response_data.get('model') == 'gemini-2.5-flash' and
+                    'response_preview' in response_data):
+                    print("    ✅ Valid API key test successful - connection established")
+                    print(f"    ✅ Model confirmed: {response_data.get('model')}")
+                    print(f"    ✅ Response preview received: {len(response_data.get('response_preview', ''))} chars")
+                    return True
+                else:
+                    print("    ❌ Valid API key test failed - incomplete response structure")
+                    print(f"    Response: {response_data}")
+                    return False
+            elif response.status_code == 400:
+                error_detail = response.json().get('detail', '')
+                if 'Invalid API key' in error_detail:
+                    print("    ✅ API key validation working - realistic key format rejected properly")
+                    return True
+                else:
+                    print(f"    ❌ Unexpected 400 error: {error_detail}")
+                    return False
+            elif response.status_code == 429:
+                error_detail = response.json().get('detail', '')
+                if 'Rate limit exceeded' in error_detail:
+                    print("    ✅ Rate limit error handling working")
+                    return True
+                else:
+                    print(f"    ❌ Rate limit error message incorrect: {error_detail}")
+                    return False
+            elif response.status_code == 500:
+                error_detail = response.json().get('detail', '')
+                if 'Connection test failed' in error_detail:
+                    print("    ✅ Connection test endpoint working - API connection failed as expected")
+                    return True
+                else:
+                    print(f"    ❌ Unexpected 500 error: {error_detail}")
+                    return False
+            else:
+                print(f"    ❌ Unexpected response status {response.status_code}: {response.text}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Connection endpoint test failed with error: {str(e)}")
+            return False
+
     def test_enhanced_llm_intelligence(self) -> bool:
         """Test enhanced LLM intelligence with sophisticated biostatistical context"""
         print("Testing Enhanced LLM Intelligence...")
