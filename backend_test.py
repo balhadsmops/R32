@@ -4521,6 +4521,276 @@ print(bp_by_gender)
         
         print("=" * 60)
 
+    def test_data_cleaning_functionality(self) -> bool:
+        """Test new data cleaning and preview functionality"""
+        print("Testing Data Cleaning and Preview Functionality...")
+        
+        if not self.session_id:
+            print("❌ No session ID available for data cleaning testing")
+            return False
+        
+        try:
+            # Test 1: Data Preview API with pagination and sorting
+            print("  Testing Data Preview API...")
+            preview_data = {
+                "session_id": self.session_id,
+                "page": 1,
+                "page_size": 10,
+                "sort_column": "age",
+                "sort_direction": "desc"
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/sessions/{self.session_id}/data-preview", 
+                                   json=preview_data,
+                                   headers={'Content-Type': 'application/json'})
+            
+            if response.status_code == 200:
+                preview_result = response.json()
+                if ('data' in preview_result and 
+                    'total_rows' in preview_result and 
+                    'page_info' in preview_result):
+                    print("    ✅ Data Preview API working with pagination and sorting")
+                    
+                    # Test 2: Data Quality API
+                    print("  Testing Data Quality API...")
+                    quality_response = requests.post(f"{BACKEND_URL}/sessions/{self.session_id}/data-quality",
+                                                   json={"session_id": self.session_id},
+                                                   headers={'Content-Type': 'application/json'})
+                    
+                    if quality_response.status_code == 200:
+                        quality_result = quality_response.json()
+                        if ('quality_info' in quality_result and 
+                            isinstance(quality_result['quality_info'], list)):
+                            print("    ✅ Data Quality API working - comprehensive quality info returned")
+                            
+                            # Test 3: Missing Data Handling
+                            print("  Testing Missing Data Handling...")
+                            missing_data_request = {
+                                "session_id": self.session_id,
+                                "strategy": "fill_mean",
+                                "columns": ["age", "weight"]
+                            }
+                            
+                            missing_response = requests.post(f"{BACKEND_URL}/sessions/{self.session_id}/handle-missing-data",
+                                                           json=missing_data_request,
+                                                           headers={'Content-Type': 'application/json'})
+                            
+                            if missing_response.status_code == 200:
+                                missing_result = missing_response.json()
+                                if 'cleaned_data_preview' in missing_result:
+                                    print("    ✅ Missing Data Handling working - fill_mean strategy applied")
+                                    
+                                    # Test 4: Outlier Detection
+                                    print("  Testing Outlier Detection...")
+                                    outlier_request = {
+                                        "session_id": self.session_id,
+                                        "method": "iqr",
+                                        "columns": ["age", "blood_pressure_systolic"],
+                                        "threshold": 1.5
+                                    }
+                                    
+                                    outlier_response = requests.post(f"{BACKEND_URL}/sessions/{self.session_id}/detect-outliers",
+                                                                   json=outlier_request,
+                                                                   headers={'Content-Type': 'application/json'})
+                                    
+                                    if outlier_response.status_code == 200:
+                                        outlier_result = outlier_response.json()
+                                        if 'outliers' in outlier_result:
+                                            print("    ✅ Outlier Detection working - IQR method applied")
+                                            
+                                            # Test 5: Data Transformation
+                                            print("  Testing Data Transformation...")
+                                            transform_request = {
+                                                "session_id": self.session_id,
+                                                "transformation_type": "normalize",
+                                                "columns": ["age", "weight"]
+                                            }
+                                            
+                                            transform_response = requests.post(f"{BACKEND_URL}/sessions/{self.session_id}/transform-data",
+                                                                             json=transform_request,
+                                                                             headers={'Content-Type': 'application/json'})
+                                            
+                                            if transform_response.status_code == 200:
+                                                transform_result = transform_response.json()
+                                                if 'transformed_data_preview' in transform_result:
+                                                    print("    ✅ Data Transformation working - normalization applied")
+                                                    
+                                                    # Test 6: Remove Duplicates
+                                                    print("  Testing Remove Duplicates...")
+                                                    duplicate_request = {
+                                                        "session_id": self.session_id
+                                                    }
+                                                    
+                                                    duplicate_response = requests.post(f"{BACKEND_URL}/sessions/{self.session_id}/remove-duplicates",
+                                                                                     json=duplicate_request,
+                                                                                     headers={'Content-Type': 'application/json'})
+                                                    
+                                                    if duplicate_response.status_code == 200:
+                                                        duplicate_result = duplicate_response.json()
+                                                        if 'cleaned_data_preview' in duplicate_result:
+                                                            print("    ✅ Remove Duplicates working")
+                                                            
+                                                            # Test 7: Save Cleaned Data
+                                                            print("  Testing Save Cleaned Data...")
+                                                            save_request = {
+                                                                "session_id": self.session_id,
+                                                                "new_filename": "cleaned_medical_data.csv"
+                                                            }
+                                                            
+                                                            save_response = requests.post(f"{BACKEND_URL}/sessions/{self.session_id}/save-cleaned-data",
+                                                                                         json=save_request,
+                                                                                         headers={'Content-Type': 'application/json'})
+                                                            
+                                                            if save_response.status_code == 200:
+                                                                save_result = save_response.json()
+                                                                if 'new_session_id' in save_result:
+                                                                    print("    ✅ Save Cleaned Data working - new session created")
+                                                                    return True
+                                                                else:
+                                                                    print("    ❌ Save Cleaned Data failed - no new session ID")
+                                                                    return False
+                                                            else:
+                                                                print(f"    ❌ Save Cleaned Data failed with status {save_response.status_code}")
+                                                                return False
+                                                        else:
+                                                            print("    ❌ Remove Duplicates failed - no cleaned data preview")
+                                                            return False
+                                                    else:
+                                                        print(f"    ❌ Remove Duplicates failed with status {duplicate_response.status_code}")
+                                                        return False
+                                                else:
+                                                    print("    ❌ Data Transformation failed - no transformed data preview")
+                                                    return False
+                                            else:
+                                                print(f"    ❌ Data Transformation failed with status {transform_response.status_code}")
+                                                return False
+                                        else:
+                                            print("    ❌ Outlier Detection failed - no outliers data")
+                                            return False
+                                    else:
+                                        print(f"    ❌ Outlier Detection failed with status {outlier_response.status_code}")
+                                        return False
+                                else:
+                                    print("    ❌ Missing Data Handling failed - no cleaned data preview")
+                                    return False
+                            else:
+                                print(f"    ❌ Missing Data Handling failed with status {missing_response.status_code}")
+                                return False
+                        else:
+                            print("    ❌ Data Quality API failed - invalid response structure")
+                            return False
+                    else:
+                        print(f"    ❌ Data Quality API failed with status {quality_response.status_code}")
+                        return False
+                else:
+                    print("    ❌ Data Preview API failed - invalid response structure")
+                    return False
+            else:
+                print(f"    ❌ Data Preview API failed with status {response.status_code}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Data cleaning functionality test failed with error: {str(e)}")
+            return False
+
+    def test_data_cleaning_with_sample_medical_data(self) -> bool:
+        """Test data cleaning functionality with the actual sample medical data"""
+        print("Testing Data Cleaning with Sample Medical Data...")
+        
+        try:
+            # Upload the sample medical data file
+            print("  Uploading sample medical data...")
+            with open('/app/examples/sample_medical_data.csv', 'r') as f:
+                csv_content = f.read()
+            
+            files = {
+                'file': ('sample_medical_data.csv', csv_content, 'text/csv')
+            }
+            
+            response = requests.post(f"{BACKEND_URL}/sessions", files=files, timeout=30)
+            
+            if response.status_code == 200:
+                session_data = response.json()
+                test_session_id = session_data.get('id')
+                print(f"    ✅ Sample medical data uploaded - Session ID: {test_session_id}")
+                
+                # Test various data cleaning scenarios
+                print("  Testing various cleaning strategies...")
+                
+                # Test different missing data strategies
+                strategies = ["drop", "fill_mean", "fill_median", "fill_mode"]
+                for strategy in strategies:
+                    print(f"    Testing {strategy} strategy...")
+                    missing_request = {
+                        "session_id": test_session_id,
+                        "strategy": strategy,
+                        "columns": ["age", "weight"] if strategy != "drop" else None
+                    }
+                    
+                    missing_response = requests.post(f"{BACKEND_URL}/sessions/{test_session_id}/handle-missing-data",
+                                                   json=missing_request,
+                                                   headers={'Content-Type': 'application/json'})
+                    
+                    if missing_response.status_code == 200:
+                        print(f"      ✅ {strategy} strategy working")
+                    else:
+                        print(f"      ❌ {strategy} strategy failed")
+                        return False
+                
+                # Test different outlier detection methods
+                methods = ["iqr", "zscore", "isolation_forest"]
+                for method in methods:
+                    print(f"    Testing {method} outlier detection...")
+                    outlier_request = {
+                        "session_id": test_session_id,
+                        "method": method,
+                        "columns": ["age", "blood_pressure_systolic"],
+                        "threshold": 1.5 if method == "iqr" else None,
+                        "z_threshold": 3.0 if method == "zscore" else None
+                    }
+                    
+                    outlier_response = requests.post(f"{BACKEND_URL}/sessions/{test_session_id}/detect-outliers",
+                                                   json=outlier_request,
+                                                   headers={'Content-Type': 'application/json'})
+                    
+                    if outlier_response.status_code == 200:
+                        print(f"      ✅ {method} outlier detection working")
+                    else:
+                        print(f"      ❌ {method} outlier detection failed")
+                        return False
+                
+                # Test different transformation types
+                transformations = ["normalize", "standardize", "encode_categorical"]
+                for transform_type in transformations:
+                    print(f"    Testing {transform_type} transformation...")
+                    transform_request = {
+                        "session_id": test_session_id,
+                        "transformation_type": transform_type,
+                        "columns": ["age", "weight"] if transform_type != "encode_categorical" else ["gender", "diagnosis"],
+                        "encoding_method": "onehot" if transform_type == "encode_categorical" else None
+                    }
+                    
+                    transform_response = requests.post(f"{BACKEND_URL}/sessions/{test_session_id}/transform-data",
+                                                     json=transform_request,
+                                                     headers={'Content-Type': 'application/json'})
+                    
+                    if transform_response.status_code == 200:
+                        print(f"      ✅ {transform_type} transformation working")
+                    else:
+                        print(f"      ❌ {transform_type} transformation failed")
+                        return False
+                
+                print("✅ All data cleaning functionality tests passed with sample medical data")
+                return True
+                
+            else:
+                print(f"❌ Failed to upload sample medical data: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Sample medical data cleaning test failed with error: {str(e)}")
+            return False
+
 if __name__ == "__main__":
     tester = BackendTester()
     tester.run_focused_tests()
