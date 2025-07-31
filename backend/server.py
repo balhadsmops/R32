@@ -2534,6 +2534,296 @@ async def save_cleaned_data(session_id: str, cleaned_data_b64: str, filename: st
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# SPSS-like Variable Metadata and Data Management Endpoints
+
+@api_router.get("/sessions/{session_id}/variable-metadata")
+async def get_variable_metadata(session_id: str):
+    """Get SPSS-like variable metadata for a session"""
+    try:
+        # Get session
+        session = await db.chat_sessions.find_one({"id": session_id})
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        # Check if variable metadata exists
+        variable_metadata = session.get("variable_metadata", None)
+        
+        if not variable_metadata:
+            # Generate default metadata from CSV structure
+            if not session.get("file_data"):
+                raise HTTPException(status_code=400, detail="No data file in session")
+                
+            # Load CSV data
+            csv_data = base64.b64decode(session["file_data"]).decode('utf-8')
+            df = pd.read_csv(io.StringIO(csv_data))
+            
+            # Generate default variable definitions
+            variables = []
+            for col in df.columns:
+                col_data = df[col]
+                
+                # Determine type
+                if pd.api.types.is_numeric_dtype(col_data):
+                    var_type = "Numeric"
+                    decimals = 2
+                    measure = "Scale"
+                else:
+                    var_type = "String"
+                    decimals = 0
+                    measure = "Nominal"
+                
+                # Detect potential value labels for categorical data
+                values = {}
+                if col_data.nunique() <= 10 and not pd.api.types.is_numeric_dtype(col_data):
+                    unique_vals = col_data.dropna().unique()
+                    for i, val in enumerate(unique_vals):
+                        values[str(val)] = str(val)
+                
+                variable = VariableDefinition(
+                    name=col,
+                    type=var_type,
+                    width=max(8, len(str(col))),
+                    decimals=decimals,
+                    label=col.replace('_', ' ').title(),
+                    values=values,
+                    missing=[],
+                    columns=max(8, len(str(col))),
+                    align="Right" if var_type == "Numeric" else "Left",
+                    measure=measure
+                )
+                variables.append(variable)
+            
+            # Save generated metadata
+            variable_metadata = {"variables": [var.dict() for var in variables]}
+            await db.chat_sessions.update_one(
+                {"id": session_id},
+                {"$set": {"variable_metadata": variable_metadata}}
+            )
+        
+        return VariableMetadataResponse(
+            session_id=session_id,
+            variables=[VariableDefinition(**var) for var in variable_metadata["variables"]]
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/sessions/{session_id}/variable-metadata")  
+async def update_variable_metadata(session_id: str, request: VariableMetadataRequest):
+    """Update SPSS-like variable metadata for a session"""
+    try:
+        # Get session
+        session = await db.chat_sessions.find_one({"id": session_id})
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        # Update variable metadata
+        variable_metadata = {"variables": [var.dict() for var in request.variables]}
+        await db.chat_sessions.update_one(
+            {"id": session_id},
+            {"$set": {"variable_metadata": variable_metadata}}
+        )
+        
+        return {"message": "Variable metadata updated successfully"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/sessions/{session_id}/missing-suggestions")
+async def get_missing_data_suggestions(session_id: str, request: MissingSuggestionsRequest):
+    """Analyze data and provide intelligent suggestions for missing data labels"""
+    try:
+        # Get session
+        session = await db.chat_sessions.find_one({"id": session_id})
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        if not session.get("file_data"):
+            raise HTTPException(status_code=400, detail="No data file in session")
+        
+        # Load CSV data
+        csv_data = base64.b64decode(session["file_data"]).decode('utf-8')
+        df = pd.read_csv(io.StringIO(csv_data))
+        
+        suggestions = []
+        
+        for col in df.columns:
+            col_data = df[col]
+            missing_count = int(col_data.isnull().sum())
+            missing_percentage = (missing_count / len(df)) * 100
+            
+            if missing_percentage >= request.threshold_percentage and missing_count > 0:
+                # Generate intelligent suggestion based on column name and data type
+                col_lower = col.lower()
+                
+                if any(term in col_lower for term in ['age', 'years', 'year']):
+                    suggested_label = "Age Not Recorded"
+                    rationale = "Standard label for missing age data in demographic studies"
+                elif any(term in col_lower for term in ['weight', 'height', 'bmi']):
+                    suggested_label = "Measurement Not Available"
+                    rationale = "Common label for missing anthropometric measurements"
+                elif any(term in col_lower for term in ['blood', 'pressure', 'bp', 'crp', 'lab', 'test']):
+                    suggested_label = f"{col.replace('_', ' ').title()} Not Available"
+                    rationale = "Standard label for missing laboratory or clinical measurements"
+                elif any(term in col_lower for term in ['income', 'salary', 'wage', 'cost', 'price']):
+                    suggested_label = "Financial Data Not Disclosed"
+                    rationale = "Appropriate label for missing financial information"
+                elif any(term in col_lower for term in ['education', 'degree', 'school']):
+                    suggested_label = "Education Level Not Specified"
+                    rationale = "Standard label for missing educational data"
+                elif any(term in col_lower for term in ['diagnosis', 'disease', 'condition']):
+                    suggested_label = "Diagnosis Not Available"
+                    rationale = "Medical standard for missing diagnostic information"
+                elif pd.api.types.is_numeric_dtype(col_data):
+                    suggested_label = "Value Not Measured"
+                    rationale = "Generic label for missing numeric measurements"
+                else:
+                    suggested_label = "Not Specified"
+                    rationale = "Generic label for missing categorical data"
+                
+                suggestion = MissingSuggestion(
+                    column_name=col,
+                    missing_count=missing_count,
+                    missing_percentage=round(missing_percentage, 1),
+                    suggested_label=suggested_label,
+                    rationale=rationale
+                )
+                suggestions.append(suggestion)
+        
+        return MissingSuggestionsResponse(
+            session_id=session_id,
+            suggestions=suggestions
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/sessions/{session_id}/apply-suggestions")
+async def apply_missing_data_suggestions(session_id: str, request: ApplySuggestionsRequest):
+    """Apply accepted missing data suggestions to the dataset"""
+    try:
+        # Get session
+        session = await db.chat_sessions.find_one({"id": session_id})
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        if not session.get("file_data"):
+            raise HTTPException(status_code=400, detail="No data file in session")
+        
+        # Load CSV data
+        csv_data = base64.b64decode(session["file_data"]).decode('utf-8')
+        df = pd.read_csv(io.StringIO(csv_data))
+        
+        applied_changes = []
+        
+        for suggestion in request.accepted_suggestions:
+            column_name = suggestion["column_name"]
+            label = suggestion["label_to_apply"]
+            
+            if column_name in df.columns:
+                # Fill missing values with the suggested label
+                missing_count = int(df[column_name].isnull().sum())
+                df[column_name] = df[column_name].fillna(label)
+                
+                applied_changes.append({
+                    "column": column_name,
+                    "label": label,
+                    "filled_count": missing_count
+                })
+        
+        # Save updated data
+        output = io.StringIO()
+        df.to_csv(output, index=False)
+        updated_csv_data = output.getvalue()
+        updated_data_b64 = base64.b64encode(updated_csv_data.encode('utf-8')).decode('utf-8')
+        
+        # Update CSV preview
+        csv_preview = {
+            "shape": [len(df), len(df.columns)],
+            "columns": df.columns.tolist(),
+            "dtypes": df.dtypes.astype(str).to_dict(),
+            "null_counts": df.isnull().sum().to_dict(),
+            "sample_data": df.head(10).to_dict('records')
+        }
+        
+        await db.chat_sessions.update_one(
+            {"id": session_id},
+            {"$set": {
+                "file_data": updated_data_b64,
+                "csv_preview": csv_preview
+            }}
+        )
+        
+        return {
+            "message": "Missing data suggestions applied successfully",
+            "applied_changes": applied_changes,
+            "total_filled": sum(change["filled_count"] for change in applied_changes)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/sessions/{session_id}/edit-cell")
+async def edit_cell_data(session_id: str, request: CellEditRequest):
+    """Edit individual cell data in SPSS-like interface"""
+    try:
+        # Get session
+        session = await db.chat_sessions.find_one({"id": session_id})
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        if not session.get("file_data"):
+            raise HTTPException(status_code=400, detail="No data file in session")
+        
+        # Load CSV data
+        csv_data = base64.b64decode(session["file_data"]).decode('utf-8')
+        df = pd.read_csv(io.StringIO(csv_data))
+        
+        # Validate request
+        if request.row_index >= len(df) or request.row_index < 0:
+            raise HTTPException(status_code=400, detail="Invalid row index")
+        
+        if request.column_name not in df.columns:
+            raise HTTPException(status_code=400, detail="Invalid column name")
+        
+        # Update cell
+        old_value = df.iloc[request.row_index, df.columns.get_loc(request.column_name)]
+        df.iloc[request.row_index, df.columns.get_loc(request.column_name)] = request.new_value
+        
+        # Save updated data
+        output = io.StringIO()
+        df.to_csv(output, index=False)
+        updated_csv_data = output.getvalue()
+        updated_data_b64 = base64.b64encode(updated_csv_data.encode('utf-8')).decode('utf-8')
+        
+        # Update CSV preview
+        csv_preview = {
+            "shape": [len(df), len(df.columns)],
+            "columns": df.columns.tolist(),
+            "dtypes": df.dtypes.astype(str).to_dict(),
+            "null_counts": df.isnull().sum().to_dict(),
+            "sample_data": df.head(10).to_dict('records')
+        }
+        
+        await db.chat_sessions.update_one(
+            {"id": session_id},
+            {"$set": {
+                "file_data": updated_data_b64,
+                "csv_preview": csv_preview
+            }}
+        )
+        
+        return {
+            "message": "Cell updated successfully",
+            "row_index": request.row_index,
+            "column_name": request.column_name,
+            "old_value": old_value,
+            "new_value": request.new_value
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Include the router in the main app
 app.include_router(api_router)
 
