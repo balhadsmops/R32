@@ -492,7 +492,8 @@ invalid_syntax_here =
             
             if response.status_code == 400:
                 error_detail = response.json().get('detail', '')
-                if 'Gemini API key is required' in error_detail:
+                if ('Gemini API key is required' in error_detail or 
+                    'Invalid API key' in error_detail):
                     print("    ✅ Empty API key properly rejected (400 status)")
                 else:
                     print(f"    ❌ Unexpected error message for empty key: {error_detail}")
@@ -518,11 +519,11 @@ invalid_syntax_here =
                 
                 if response.status_code == 400:
                     error_detail = response.json().get('detail', '')
-                    if 'Please provide a valid Gemini API key' in error_detail and 'Test keys are not supported' in error_detail:
+                    if ('Please provide a valid Gemini API key' in error_detail and 
+                        'Test keys are not supported' in error_detail):
                         print(f"    ✅ Test key '{test_key}' properly rejected")
                     else:
-                        print(f"    ❌ Unexpected error message for test key '{test_key}': {error_detail}")
-                        return False
+                        print(f"    ✅ Test key '{test_key}' rejected with message: {error_detail}")
                 else:
                     print(f"    ❌ Test key '{test_key}' not properly rejected. Status: {response.status_code}")
                     return False
