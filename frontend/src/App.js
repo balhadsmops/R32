@@ -2215,15 +2215,59 @@ function App() {
           </div>
         </div>
         
-        {/* API Key Status */}
+        {/* API Key Status & Help */}
         <div className={`px-6 py-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-          <div className={`flex items-center space-x-2 text-xs ${
-            apiKey 
-              ? `${darkMode ? 'text-green-400' : 'text-green-600'}` 
-              : `${darkMode ? 'text-yellow-400' : 'text-yellow-600'}`
-          }`}>
-            <div className={`w-2 h-2 rounded-full ${apiKey ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-            <span>{apiKey ? 'API Key Configured' : 'API Key Required'}</span>
+          <div className="flex items-center justify-between">
+            <div className={`flex items-center space-x-2 text-xs ${
+              apiKey 
+                ? `${darkMode ? 'text-green-400' : 'text-green-600'}` 
+                : `${darkMode ? 'text-yellow-400' : 'text-yellow-600'}`
+            }`}>
+              <div className={`w-2 h-2 rounded-full ${apiKey ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+              <span>{apiKey ? 'API Key Configured' : 'API Key Required'}</span>
+            </div>
+            
+            {/* Help Menu */}
+            <div className="relative group">
+              <button
+                className={`p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ${
+                  darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}
+                title="Help & Documentation"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
+                </svg>
+              </button>
+              
+              {/* Help Dropdown */}
+              <div className={`absolute bottom-full right-0 mb-2 w-48 py-2 rounded-lg shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ${
+                darkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'
+              }`}>
+                <button
+                  onClick={() => setShowDocumentation(true)}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                    darkMode ? 'text-gray-200' : 'text-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <span>📚</span>
+                    <span>Documentation</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setShowFAQ(true)}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                    darkMode ? 'text-gray-200' : 'text-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <span>❓</span>
+                    <span>FAQ</span>
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
