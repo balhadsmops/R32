@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './App.css';
+import Documentation from './components/Documentation';
+import FAQ from './components/FAQ';
 
 // Get backend URL from environment variable
 const API = (process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001') + '/api';
