@@ -34,6 +34,8 @@ function App() {
   const [darkMode, setDarkMode] = useState(localStorage.getItem('darkMode') !== 'false');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState('chat'); // 'chat' or 'data'
+  const [showDocumentation, setShowDocumentation] = useState(false);
+  const [showFAQ, setShowFAQ] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
