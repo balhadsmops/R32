@@ -2528,6 +2528,23 @@ function App() {
       {/* Modals */}
       {showApiModal && <ApiKeyModal />}
       {showSettingsModal && <SettingsModal />}
+      
+      {/* Documentation and FAQ Modals */}
+      {showDocumentation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`w-[95vw] h-[95vh] rounded-xl shadow-2xl ${darkMode ? 'bg-gray-900' : 'bg-white'} overflow-hidden`}>
+            <Documentation darkMode={darkMode} onClose={() => setShowDocumentation(false)} />
+          </div>
+        </div>
+      )}
+      
+      {showFAQ && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`w-[95vw] h-[95vh] rounded-xl shadow-2xl ${darkMode ? 'bg-gray-900' : 'bg-white'} overflow-hidden`}>
+            <FAQ darkMode={darkMode} onClose={() => setShowFAQ(false)} />
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );
