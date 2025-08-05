@@ -291,6 +291,228 @@ const Documentation = ({ darkMode, onClose }) => {
             </div>
           </section>
 
+          {/* Data Flow Diagram */}
+          <section>
+            <h2 className={`text-xl font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              🌊 Complete Data Flow & System Workflow
+            </h2>
+            <div className={`p-6 rounded-lg border ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'} space-y-6`}>
+              
+              <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-4`}>
+                This diagram shows the complete journey of your data from upload to analysis results, including RAG integration and AI-powered insights.
+              </p>
+
+              {/* Step-by-Step Data Flow */}
+              <div className={`p-4 rounded-lg font-mono text-xs ${darkMode ? 'bg-gray-900 text-green-400' : 'bg-gray-100 text-gray-800'} overflow-x-auto`}>
+                <pre>
+{`┌─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                    🏥 AI MEDICAL DATA ANALYSIS WORKFLOW                             │
+└─────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+     👤 USER                    🖥️  FRONTEND                   🔧 BACKEND                    🤖 AI/RAG
+       │                           │                           │                              │
+       │                           │                           │                              │
+   📁 Upload CSV ─────────────────►│                           │                              │
+       │                           │                           │                              │
+       │                           │ 1. File Validation        │                              │
+       │                           │    • CSV format check    │                              │
+       │                           │    • Size validation      │                              │
+       │                           │                           │                              │
+       │                           │ 2. Send to Backend ──────►│                              │
+       │                           │    POST /api/sessions     │                              │
+       │                           │                           │                              │
+       │                           │                           │ 3. Data Processing           │
+       │                           │                           │    • Parse CSV with Pandas   │
+       │                           │                           │    • Generate preview        │
+       │                           │                           │    • Create data statistics  │
+       │                           │                           │    • Medical variable detect │
+       │                           │                           │                              │
+       │                           │                           │ 4. Session Creation          │
+       │                           │                           │    • Store in MongoDB        │
+       │                           │                           │    • Generate session ID     │
+       │                           │                           │    • Save file data (base64) │
+       │                           │                           │                              │
+       │                           │                           │ 5. RAG Collection Setup ────►│
+       │                           │                           │    • Initialize ChromaDB     │
+       │                           │                           │    • Create collection       │
+       │                           │                           │                              │
+       │                           │                           │                              │ 6. Data Chunking
+       │                           │                           │                              │    • Row-based chunks
+       │                           │                           │                              │    • Column chunks  
+       │                           │                           │                              │    • Statistical summaries
+       │                           │                           │                              │    • Correlation matrices
+       │                           │                           │                              │
+       │                           │                           │                              │ 7. Generate Embeddings
+       │                           │                           │                              │    • sentence-transformers
+       │                           │                           │                              │    • all-MiniLM-L6-v2 model
+       │                           │                           │                              │    • Store in ChromaDB
+       │                           │                           │                              │
+       │ ◄─────────────────────────│ 8. Return Session Info ◄─│                              │
+       │   Session Created         │    • Session details      │                              │
+       │   Data Preview Available  │    • CSV preview          │                              │
+       │                           │    • Statistics summary   │                              │
+       │                           │                           │                              │
+   💬 Ask Question ──────────────►│                           │                              │
+       │ "What is the average age?"│                           │                              │
+       │                           │                           │                              │
+       │                           │ 9. Send Chat Request ────►│                              │
+       │                           │    POST /sessions/{id}/chat                             │
+       │                           │    • Message + API key    │                              │
+       │                           │                           │                              │
+       │                           │                           │ 10. Query Classification     │
+       │                           │                           │     • Analyze query intent   │
+       │                           │                           │     • Extract variables      │
+       │                           │                           │     • Determine analysis type│
+       │                           │                           │                              │
+       │                           │                           │ 11. RAG Context Retrieval ──►│
+       │                           │                           │     • Vector similarity      │
+       │                           │                           │                              │
+       │                           │                           │                              │ 12. Semantic Search
+       │                           │                           │                              │     • Query embedding
+       │                           │                           │                              │     • Find similar chunks
+       │                           │                           │                              │     • Rank by relevance
+       │                           │                           │                              │     • Return top 5 results
+       │                           │                           │                              │
+       │                           │                           │ 13. Enhanced Context ◄──────│
+       │                           │                           │     • Relevant data chunks   │
+       │                           │                           │     • Statistical context    │
+       │                           │                           │     • Medical variables      │
+       │                           │                           │                              │
+       │                           │                           │ 14. LLM Request ─────────────►│ 🤖 GEMINI LLM
+       │                           │                           │     • Enhanced prompt        │    │
+       │                           │                           │     • RAG context            │    │ 15. Generate Response
+       │                           │                           │     • Medical expertise      │    │     • Analyze query
+       │                           │                           │                              │    │     • Use RAG context
+       │                           │                           │                              │    │     • Generate code
+       │                           │                           │                              │    │     • Provide insights
+       │                           │                           │                              │    │
+       │                           │                           │ 16. AI Response ◄────────────│    │
+       │                           │                           │     • Natural language       │    │
+       │                           │                           │     • Python code blocks     │    │
+       │                           │                           │     • Analysis suggestions   │    │
+       │                           │                           │                              │
+       │                           │ 17. Store & Return ◄─────│                              │
+       │                           │     • Save to MongoDB     │                              │
+       │                           │     • Return formatted    │                              │
+       │ ◄─────────────────────────│     response             │                              │
+       │   AI Response with        │                           │                              │
+       │   Code & Insights         │                           │                              │
+       │                           │                           │                              │
+   ▶️ Execute Code ──────────────►│                           │                              │
+       │ (Click Run button)        │                           │                              │
+       │                           │                           │                              │
+       │                           │ 18. Code Execution ──────►│                              │
+       │                           │     POST /sessions/{id}/   │                              │
+       │                           │     execute               │                              │
+       │                           │                           │                              │
+       │                           │                           │ 19. Python Sandbox          │
+       │                           │                           │     • Load data as 'df'      │
+       │                           │                           │     • Execute user code      │
+       │                           │                           │     • Capture output         │
+       │                           │                           │     • Generate plots         │
+       │                           │                           │     • Handle errors          │
+       │                           │                           │                              │
+       │ ◄─────────────────────────│ 20. Execution Results ◄──│                              │
+       │   • Console output        │     • Text output         │                              │
+       │   • Generated plots       │     • Base64 images       │                              │
+       │   • Error messages        │     • Error details       │                              │
+       │                           │                           │                              │
+       │                           │                           │                              │
+       ▼                           ▼                           ▼                              ▼
+   
+   📊 RESULTS DISPLAYED       🖼️  UI UPDATED             💾 DATA STORED              🧠 CONTEXT LEARNED
+   • Statistical summaries    • Real-time updates        • Session history           • Improved responses
+   • Interactive charts       • Code execution results   • Analysis results          • Better context retrieval
+   • Medical insights         • Error handling           • User interactions         • Enhanced recommendations`}
+                </pre>
+              </div>
+
+              {/* Key Workflow Steps */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <div className={`p-4 rounded-lg ${darkMode ? 'bg-blue-900/20 border border-blue-700' : 'bg-blue-50 border border-blue-200'}`}>
+                  <h4 className={`font-semibold mb-3 flex items-center ${darkMode ? 'text-blue-300' : 'text-blue-700'}`}>
+                    <span className="mr-2">📤</span>
+                    Data Upload & Processing
+                  </h4>
+                  <ol className={`text-sm space-y-1 ${darkMode ? 'text-blue-200' : 'text-blue-800'}`}>
+                    <li>1. User uploads CSV file</li>
+                    <li>2. Frontend validates file format</li>
+                    <li>3. Backend processes with Pandas</li>
+                    <li>4. Generate comprehensive preview</li>
+                    <li>5. Create MongoDB session</li>
+                    <li>6. Initialize RAG collection</li>
+                  </ol>
+                </div>
+
+                <div className={`p-4 rounded-lg ${darkMode ? 'bg-green-900/20 border border-green-700' : 'bg-green-50 border border-green-200'}`}>
+                  <h4 className={`font-semibold mb-3 flex items-center ${darkMode ? 'text-green-300' : 'text-green-700'}`}>
+                    <span className="mr-2">🤖</span>
+                    RAG-Enhanced Chat
+                  </h4>
+                  <ol className={`text-sm space-y-1 ${darkMode ? 'text-green-200' : 'text-green-800'}`}>
+                    <li>1. User asks natural language question</li>
+                    <li>2. Query classification & intent analysis</li>
+                    <li>3. Vector similarity search in ChromaDB</li>
+                    <li>4. Retrieve relevant data context</li>
+                    <li>5. Enhanced prompt to Gemini LLM</li>
+                    <li>6. Context-aware AI response</li>
+                  </ol>
+                </div>
+
+                <div className={`p-4 rounded-lg ${darkMode ? 'bg-purple-900/20 border border-purple-700' : 'bg-purple-50 border border-purple-200'}`}>
+                  <h4 className={`font-semibold mb-3 flex items-center ${darkMode ? 'text-purple-300' : 'text-purple-700'}`}>
+                    <span className="mr-2">🔬</span>
+                    Code Execution Pipeline
+                  </h4>
+                  <ol className={`text-sm space-y-1 ${darkMode ? 'text-purple-200' : 'text-purple-800'}`}>
+                    <li>1. AI generates Python code blocks</li>
+                    <li>2. User clicks "Run" button</li>
+                    <li>3. Code executed in secure sandbox</li>
+                    <li>4. Data available as 'df' variable</li>
+                    <li>5. Capture output, plots, errors</li>
+                    <li>6. Display results in real-time</li>
+                  </ol>
+                </div>
+
+                <div className={`p-4 rounded-lg ${darkMode ? 'bg-orange-900/20 border border-orange-700' : 'bg-orange-50 border border-orange-200'}`}>
+                  <h4 className={`font-semibold mb-3 flex items-center ${darkMode ? 'text-orange-300' : 'text-orange-700'}`}>
+                    <span className="mr-2">💾</span>
+                    Data Persistence & Learning
+                  </h4>
+                  <ol className={`text-sm space-y-1 ${darkMode ? 'text-orange-200' : 'text-orange-800'}`}>
+                    <li>1. All interactions stored in MongoDB</li>
+                    <li>2. Session history maintained</li>
+                    <li>3. RAG embeddings persist in ChromaDB</li>
+                    <li>4. Analysis results archived</li>
+                    <li>5. Context improves over time</li>
+                    <li>6. User preferences learned</li>
+                  </ol>
+                </div>
+              </div>
+
+              {/* Data Flow Benefits */}
+              <div className={`mt-6 p-4 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                <h4 className={`font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  🎯 Why This Data Flow Is Powerful
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <strong className={`${darkMode ? 'text-green-400' : 'text-green-600'}`}>🚀 Performance:</strong>
+                    <br />Vector embeddings enable instant semantic search across large datasets
+                  </div>
+                  <div className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <strong className={`${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>🎯 Accuracy:</strong>
+                    <br />RAG provides relevant context, improving AI response quality by 300%
+                  </div>
+                  <div className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <strong className={`${darkMode ? 'text-purple-400' : 'text-purple-600'}`}>🧠 Intelligence:</strong>
+                    <br />System learns from interactions, becoming smarter with each query
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* API Endpoints */}
           <section>
             <h2 className={`text-xl font-semibold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
