@@ -2112,8 +2112,21 @@ function App() {
         <div className="px-6 py-6">
           {/* File Upload Input with Custom Styling */}
           <div className="relative">
-            <label
-              htmlFor="file-upload-input"
+            {/* Hidden file input */}
+            <input
+              id="file-upload-input"
+              type="file"
+              accept=".csv"
+              onChange={handleFileUpload}
+              disabled={uploading}
+              className="hidden"
+              ref={fileInputRef}
+            />
+            
+            {/* Styled upload button */}
+            <button
+              onClick={handleUploadClick}
+              disabled={uploading}
               className={`w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-xl font-medium transition-all border-2 border-dashed cursor-pointer ${
                 uploading 
                   ? 'border-gray-400 bg-gray-100 text-gray-500 cursor-not-allowed'
@@ -2139,17 +2152,7 @@ function App() {
                   <span>Upload CSV</span>
                 </>
               )}
-            </label>
-            
-            {/* Visible file input with transparent overlay */}
-            <input
-              id="file-upload-input"
-              type="file"
-              accept=".csv"
-              onChange={handleFileUpload}
-              disabled={uploading}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-            />
+            </button>
           </div>
         </div>
         
