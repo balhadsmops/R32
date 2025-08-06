@@ -75,3 +75,4 @@ aiohappyeyeballs>=2.6.0
 opentelemetry-semantic-conventions>=0.57b0
 aiosignal>=1.4.0
 opentelemetry-exporter-otlp>=1.36.0
+frozenlist>=1.4.0
