@@ -5549,13 +5549,60 @@ print(bp_by_gender)
         return results
 
 if __name__ == "__main__":
+    """Main function to run CSV upload functionality tests as requested by user"""
+    print("🚀 AI DATA SCIENTIST BACKEND - CSV UPLOAD FUNCTIONALITY TESTING")
+    print("=" * 70)
+    print("Testing CSV file upload functionality as requested by user:")
+    print("1. Test CSV upload endpoint: POST /api/sessions with a CSV file")
+    print("2. Use sample file at /app/examples/sample_medical_data.csv")
+    print("3. Verify response includes session creation and CSV preview data")
+    print("4. Test API accessibility from frontend (CORS and connectivity)")
+    print("5. Verify file validation works (non-CSV files should fail)")
+    print("=" * 70)
+    
     tester = BackendTester()
     
-    # Run SPSS-like functionality tests as requested in the review
-    results = tester.run_spss_functionality_tests()
+    # Run the comprehensive CSV upload test
+    csv_upload_success = tester.test_csv_upload_functionality_comprehensive()
     
-    # Exit with appropriate code
-    if all(results.values()):
-        exit(0)
+    # Additional quick tests if CSV upload works
+    if csv_upload_success and tester.session_id:
+        print("\n" + "=" * 70)
+        print("🔧 RUNNING ADDITIONAL BACKEND VERIFICATION TESTS")
+        print("=" * 70)
+        
+        # Test session management
+        session_mgmt_success = tester.test_session_management()
+        
+        # Test basic API health
+        try:
+            import requests
+            api_response = requests.get(f"{BACKEND_URL}/", timeout=10)
+            api_health = api_response.status_code == 200 and api_response.json().get('message') == 'AI Data Scientist API'
+            if api_health:
+                print("✅ API Health Check: PASSED")
+            else:
+                print("❌ API Health Check: FAILED")
+        except:
+            print("❌ API Health Check: FAILED")
+            api_health = False
+        
+        print("\n" + "=" * 70)
+        print("📊 FINAL TEST SUMMARY")
+        print("=" * 70)
+        print(f"✅ CSV Upload Functionality: {'PASSED' if csv_upload_success else 'FAILED'}")
+        print(f"✅ Session Management: {'PASSED' if session_mgmt_success else 'FAILED'}")
+        print(f"✅ API Health Check: {'PASSED' if api_health else 'FAILED'}")
+        
+        overall_success = csv_upload_success and session_mgmt_success and api_health
+        print(f"\n🏆 OVERALL RESULT: {'ALL TESTS PASSED' if overall_success else 'SOME TESTS FAILED'}")
+        
+        if overall_success:
+            print("\n🎉 CSV file upload functionality is working correctly!")
+            print("The backend is ready for frontend integration.")
+        else:
+            print("\n⚠️ Some issues found. Please check the detailed results above.")
+    
     else:
-        exit(1)
+        print("\n❌ CSV upload functionality test failed.")
+        print("Please check the backend configuration and try again.")
