@@ -12,8 +12,9 @@ import pandas as pd
 import time
 from typing import Dict, Any, Optional
 
-# Configuration
-BACKEND_URL = "https://576d2e7e-faf0-4844-9040-085313e5ad35.preview.emergentagent.com/api"
+# Configuration - Use environment variables for URLs
+import os
+BACKEND_URL = os.environ.get('REACT_APP_BACKEND_URL', 'http://localhost:8001') + '/api'
 TEST_API_KEY = "AIzaSyD9EMfuUjkccIWZ1SlKX5BNt-jOkcGPlXE"  # Use actual API key from backend .env
 
 class BackendTester:
