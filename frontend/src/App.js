@@ -37,6 +37,7 @@ function App() {
   const [showDocumentation, setShowDocumentation] = useState(false);
   const [showFAQ, setShowFAQ] = useState(false);
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchSessions();
