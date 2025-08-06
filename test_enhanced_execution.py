@@ -15,7 +15,7 @@ P004,55,F,135,85,240,27.8,1,0
 P005,41,M,145,95,260,29.1,0,1'''
 
 files = {'file': ('medical_data.csv', csv_data, 'text/csv')}
-session_response = requests.post('https://e0586cc8-8f61-4b86-9edc-daaea418bdab.preview.emergentagent.com/api/sessions', files=files)
+session_response = requests.post('https://ae6e2583-a1b2-4562-9b7d-033c105c0ea7.preview.emergentagent.com/api/sessions', files=files)
 session_id = session_response.json()['id']
 
 # Test comprehensive analysis with proper string handling
@@ -73,7 +73,7 @@ data = {
     'gemini_api_key': 'test_key'
 }
 
-response = requests.post(f'https://e0586cc8-8f61-4b86-9edc-daaea418bdab.preview.emergentagent.com/api/sessions/{session_id}/execute', 
+response = requests.post(f'https://ae6e2583-a1b2-4562-9b7d-033c105c0ea7.preview.emergentagent.com/api/sessions/{session_id}/execute', 
                         json=data, 
                         headers={'Content-Type': 'application/json'})
 
