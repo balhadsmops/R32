@@ -176,6 +176,10 @@ function App() {
     }
   };
 
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
   const handleFileUpload = async (event) => {
     const selectedFile = event.target.files[0];
     if (!selectedFile) return;
